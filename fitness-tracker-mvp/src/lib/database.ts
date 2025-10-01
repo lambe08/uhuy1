@@ -1,4 +1,5 @@
 import { supabase, isDemoMode } from './supabase'
+import type { User } from '@supabase/supabase-js'
 import type { UserProfile, StepRecord, WorkoutSession, StravaConnection, Post } from './supabase'
 
 // Demo data storage (in-memory for demo mode)
@@ -456,9 +457,13 @@ export const authService = {
       const demoUser = {
         id: `demo-${Date.now()}`,
         email,
-        user_metadata: metadata
-      }
-      return { user: demoUser as any, error: null }
+        user_metadata: metadata,
+        app_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      } as User
+      return { user: demoUser, error: null }
     }
 
     if (!supabase) return { user: null, error: { message: 'Supabase not configured' } }
@@ -485,9 +490,13 @@ export const authService = {
       const demoUser = {
         id: `demo-${Date.now()}`,
         email,
-        user_metadata: { name: email.split('@')[0] }
-      }
-      return { user: demoUser as any, error: null }
+        user_metadata: { name: email.split('@')[0] },
+        app_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      } as User
+      return { user: demoUser, error: null }
     }
 
     if (!supabase) return { user: null, error: { message: 'Supabase not configured' } }

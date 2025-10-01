@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { StravaIntegration } from "@/components/strava-integration";
+import { WorkoutSession } from "@/components/workout-session";
 import { useAuth } from "@/hooks/useAuth";
 import { useStepTracking } from "@/hooks/useStepTracking";
 import { isDemoMode } from "@/lib/supabase";
@@ -24,6 +25,19 @@ interface Workout {
   muscles?: string[];
 }
 
+interface SessionWorkout {
+  id: string;
+  name: string;
+  exercises: Array<{
+    id: string;
+    name: string;
+    sets: number;
+    reps: number;
+    duration: number;
+    rest: number;
+  }>;
+}
+
 export default function Home() {
   const { user, profile, loading: authLoading, signUp, signIn, signOut, updateProfile, isAuthenticated } = useAuth();
   const { stepData, statistics, isTracking, requestPermission, startTracking, stopTracking } = useStepTracking(
@@ -37,6 +51,8 @@ export default function Home() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
+  const [selectedWorkout, setSelectedWorkout] = useState<SessionWorkout | null>(null);
+  const [showWorkoutSession, setShowWorkoutSession] = useState(false);
 
   // Auth form state
   const [authForm, setAuthForm] = useState({
@@ -205,6 +221,40 @@ export default function Home() {
     }));
   };
 
+  const handleStartWorkout = (workout: Workout) => {
+    // Convert workout to the format expected by WorkoutSession
+    const sessionWorkout = {
+      id: workout.id,
+      name: workout.name,
+      exercises: [
+        {
+          id: `${workout.id}-1`,
+          name: `${workout.name} - Main Exercise`,
+          sets: 3,
+          reps: 12,
+          duration: workout.duration * 60, // Convert minutes to seconds
+          rest: 60 // 1 minute rest between sets
+        },
+        {
+          id: `${workout.id}-2`,
+          name: `${workout.name} - Secondary Exercise`,
+          sets: 2,
+          reps: 15,
+          duration: Math.round(workout.duration * 60 * 0.4),
+          rest: 45
+        }
+      ]
+    };
+
+    setSelectedWorkout(sessionWorkout);
+    setShowWorkoutSession(true);
+  };
+
+  const handleCloseWorkoutSession = () => {
+    setShowWorkoutSession(false);
+    setSelectedWorkout(null);
+  };
+
   // Loading state
   if (authLoading) {
     return (
@@ -364,6 +414,19 @@ export default function Home() {
             </Button>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Show workout session overlay
+  if (showWorkoutSession && selectedWorkout) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <WorkoutSession
+          userId={user?.id || null}
+          workout={selectedWorkout}
+          onClose={handleCloseWorkoutSession}
+        />
       </div>
     );
   }
@@ -587,7 +650,12 @@ export default function Home() {
                             </div>
                           )}
                         </div>
-                        <Button className="w-full mt-4">Start Workout</Button>
+                        <Button
+                          className="w-full mt-4"
+                          onClick={() => handleStartWorkout(workout)}
+                        >
+                          Start Workout
+                        </Button>
                       </CardContent>
                     </Card>
                   ))}
