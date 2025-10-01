@@ -23,7 +23,18 @@ interface WgerResponse {
 }
 
 // Cache workouts for 24 hours as mentioned in specs
-let cachedWorkouts: any[] = [];
+interface CachedWorkout {
+  id: string;
+  name: string;
+  category: string;
+  difficulty: string;
+  duration: number;
+  equipment: string[];
+  description: string;
+  muscles: string[];
+}
+
+let cachedWorkouts: CachedWorkout[] = [];
 let lastCacheTime = 0;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 

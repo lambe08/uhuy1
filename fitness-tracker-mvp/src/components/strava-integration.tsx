@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,52 @@ export function StravaIntegration() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loadMockActivities = () => {
+    const mockActivities: StravaActivity[] = [
+      {
+        id: 1,
+        name: "Morning Run",
+        type: "Run",
+        distance: 5200, // meters
+        elapsed_time: 1800, // seconds
+        start_date: "2024-01-15T06:30:00Z",
+        average_speed: 2.89
+      },
+      {
+        id: 2,
+        name: "Evening Bike Ride",
+        type: "Ride",
+        distance: 15400,
+        elapsed_time: 2700,
+        start_date: "2024-01-14T18:00:00Z",
+        average_speed: 5.7
+      },
+      {
+        id: 3,
+        name: "Trail Hike",
+        type: "Hike",
+        distance: 8200,
+        elapsed_time: 4500,
+        start_date: "2024-01-13T09:15:00Z",
+        average_speed: 1.82
+      }
+    ];
+    setActivities(mockActivities);
+  };
+
+  const loadActivities = useCallback(async (accessToken: string) => {
+    setLoading(true);
+    try {
+      // In a real app, this would make API calls to Strava
+      // For demo, we'll load mock data
+      loadMockActivities();
+    } catch (error) {
+      setError('Failed to load activities from Strava');
+      console.error('Error loading activities:', error);
+    }
+    setLoading(false);
+  }, []);
+
   // Check if user is already connected on component mount
   useEffect(() => {
     const savedToken = localStorage.getItem('strava_token');
@@ -49,7 +95,7 @@ export function StravaIntegration() {
         localStorage.removeItem('strava_token');
       }
     }
-  }, []);
+  }, [loadActivities]);
 
   const initiateStravaAuth = () => {
     // Strava OAuth2 configuration
@@ -85,52 +131,6 @@ export function StravaIntegration() {
       // Load mock activities
       loadMockActivities();
     }, 2000);
-  };
-
-  const loadActivities = async (accessToken: string) => {
-    setLoading(true);
-    try {
-      // In a real app, this would make API calls to Strava
-      // For demo, we'll load mock data
-      loadMockActivities();
-    } catch (error) {
-      setError('Failed to load activities from Strava');
-      console.error('Error loading activities:', error);
-    }
-    setLoading(false);
-  };
-
-  const loadMockActivities = () => {
-    const mockActivities: StravaActivity[] = [
-      {
-        id: 1,
-        name: "Morning Run",
-        type: "Run",
-        distance: 5200, // meters
-        elapsed_time: 1800, // seconds
-        start_date: new Date(Date.now() - 86400000).toISOString(), // yesterday
-        average_speed: 2.89 // m/s
-      },
-      {
-        id: 2,
-        name: "Evening Bike Ride",
-        type: "Ride",
-        distance: 15000,
-        elapsed_time: 2700,
-        start_date: new Date(Date.now() - 2 * 86400000).toISOString(), // 2 days ago
-        average_speed: 5.56
-      },
-      {
-        id: 3,
-        name: "Strength Training",
-        type: "WeightTraining",
-        distance: 0,
-        elapsed_time: 3600,
-        start_date: new Date(Date.now() - 3 * 86400000).toISOString(), // 3 days ago
-        average_speed: 0
-      }
-    ];
-    setActivities(mockActivities);
   };
 
   const disconnectStrava = () => {

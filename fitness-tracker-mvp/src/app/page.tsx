@@ -9,21 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { StravaIntegration } from "@/components/strava-integration";
-
-interface UserProfile {
-  name: string;
-  stepGoal: number;
-  workoutGoal: number;
-  fitnessLevel: "beginner" | "intermediate" | "advanced";
-  preferences: string[];
-}
-
-interface StepData {
-  daily: number;
-  weekly: number;
-  goal: number;
-  lastUpdate: Date;
-}
+import { useAuth } from "@/hooks/useAuth";
+import { useStepTracking } from "@/hooks/useStepTracking";
+import { isDemoMode } from "@/lib/supabase";
 
 interface Workout {
   id: string;
@@ -36,107 +24,45 @@ interface Workout {
   muscles?: string[];
 }
 
-interface StepDetector {
-  lastAcceleration: number;
-  stepThreshold: number;
-  stepCount: number;
-  lastStepTime: number;
-}
-
 export default function Home() {
-  const [isOnboarding, setIsOnboarding] = useState(true);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [stepData, setStepData] = useState<StepData>({
-    daily: 0,
-    weekly: 0,
-    goal: 10000,
-    lastUpdate: new Date()
-  });
+  const { user, profile, loading: authLoading, signUp, signIn, signOut, updateProfile, isAuthenticated } = useAuth();
+  const { stepData, statistics, isTracking, requestPermission, startTracking, stopTracking } = useStepTracking(
+    user?.id || null,
+    profile?.step_goal || 10000
+  );
+
+  const [isOnboarding, setIsOnboarding] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
-  const [stepDetector] = useState<StepDetector>({
-    lastAcceleration: 0,
-    stepThreshold: 12,
-    stepCount: 0,
-    lastStepTime: 0
+
+  // Auth form state
+  const [authForm, setAuthForm] = useState({
+    email: "",
+    password: "",
+    name: "",
+    confirmPassword: ""
   });
 
   // Onboarding state
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [formData, setFormData] = useState({
-    name: "",
     stepGoal: "10000",
     workoutGoal: "3",
     fitnessLevel: "beginner" as "beginner" | "intermediate" | "advanced",
     preferences: [] as string[]
   });
 
-  // Enhanced step tracking with device motion API
+  // Check if user needs onboarding
   useEffect(() => {
-    if (!isOnboarding && typeof window !== 'undefined') {
-      let permissionGranted = false;
-
-      const handleDeviceMotion = (event: DeviceMotionEvent) => {
-        if (!event.accelerationIncludingGravity) return;
-
-        const { x, y, z } = event.accelerationIncludingGravity;
-        if (x === null || y === null || z === null) return;
-        const acceleration = Math.sqrt(x*x + y*y + z*z);
-
-        // Simple step detection algorithm
-        if (acceleration > stepDetector.stepThreshold &&
-            acceleration > stepDetector.lastAcceleration + 2 &&
-            Date.now() - stepDetector.lastStepTime > 300) { // Minimum 300ms between steps
-
-          stepDetector.stepCount++;
-          stepDetector.lastStepTime = Date.now();
-
-          setStepData(prev => ({
-            ...prev,
-            daily: prev.daily + 1,
-            weekly: prev.weekly + 1,
-            lastUpdate: new Date()
-          }));
-        }
-
-        stepDetector.lastAcceleration = acceleration;
-      };
-
-      // Request permission for iOS devices
-      if ('requestPermission' in DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission()
-          .then((response: string) => {
-            if (response === 'granted') {
-              permissionGranted = true;
-              window.addEventListener('devicemotion', handleDeviceMotion);
-            }
-          })
-          .catch(console.error);
-      } else {
-        // For Android and other devices
-        permissionGranted = true;
-        window.addEventListener('devicemotion', handleDeviceMotion);
-      }
-
-      // Fallback simulation if device motion isn't available
-      const simulationInterval = setInterval(() => {
-        if (!permissionGranted) {
-          setStepData(prev => ({
-            ...prev,
-            daily: prev.daily + Math.floor(Math.random() * 3),
-            weekly: prev.weekly + Math.floor(Math.random() * 2),
-            lastUpdate: new Date()
-          }));
-        }
-      }, 5000);
-
-      return () => {
-        window.removeEventListener('devicemotion', handleDeviceMotion);
-        clearInterval(simulationInterval);
-      };
+    if (isAuthenticated && profile && !profile.step_goal) {
+      setIsOnboarding(true);
+    } else {
+      setIsOnboarding(false);
     }
-  }, [isOnboarding, stepDetector]);
+  }, [isAuthenticated, profile]);
 
   // Load workouts from API
   useEffect(() => {
@@ -174,25 +100,99 @@ export default function Home() {
       setLoadingWorkouts(false);
     };
 
-    if (!isOnboarding) {
+    if (isAuthenticated && !isOnboarding) {
       loadWorkouts();
     }
-  }, [isOnboarding]);
+  }, [isAuthenticated, isOnboarding]);
 
-  const handleOnboardingNext = () => {
-    if (onboardingStep < 3) {
+  // Demo Mode Notice Component
+  const DemoModeNotice = () => {
+    if (!isDemoMode) return null;
+
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center space-x-2">
+          <span className="text-amber-600 text-lg">⚠️</span>
+          <div className="flex-1">
+            <h3 className="text-amber-800 font-semibold">Demo Mode Active</h3>
+            <p className="text-amber-700 text-sm">
+              You're running in demo mode. Data is stored in memory and will be lost on refresh.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open('https://supabase.com/dashboard/new', '_blank')}
+            className="text-amber-700 border-amber-300 hover:bg-amber-100"
+          >
+            Setup Supabase
+          </Button>
+        </div>
+        <details className="mt-3">
+          <summary className="text-amber-700 cursor-pointer text-sm font-medium">
+            Click to see setup instructions
+          </summary>
+          <div className="mt-2 text-amber-700 text-sm space-y-2">
+            <p><strong>To enable full functionality:</strong></p>
+            <ol className="list-decimal list-inside space-y-1 pl-4">
+              <li>Create a new project at <a href="https://supabase.com/dashboard/new" target="_blank" rel="noopener noreferrer" className="underline">supabase.com</a></li>
+              <li>Copy your project URL and anon key from Project Settings → API</li>
+              <li>Update the environment variables in <code className="bg-amber-100 px-1 rounded">.env.local</code></li>
+              <li>Run the database schema from <code className="bg-amber-100 px-1 rounded">.same/database-schema.sql</code> in your Supabase SQL Editor</li>
+              <li>Restart the development server</li>
+            </ol>
+            <p className="text-xs mt-2">
+              Check the <code className="bg-amber-100 px-1 rounded">.same/database-schema.sql</code> file for the complete database setup.
+            </p>
+          </div>
+        </details>
+      </div>
+    );
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (authMode === 'signup') {
+      if (authForm.password !== authForm.confirmPassword) {
+        alert('Passwords do not match');
+        return;
+      }
+
+      const result = await signUp(authForm.email, authForm.password, authForm.name);
+      if (result.success) {
+        setShowAuth(false);
+        alert('Check your email for verification link');
+      } else {
+        alert(result.error);
+      }
+    } else {
+      const result = await signIn(authForm.email, authForm.password);
+      if (result.success) {
+        setShowAuth(false);
+      } else {
+        alert(result.error);
+      }
+    }
+  };
+
+  const handleOnboardingNext = async () => {
+    if (onboardingStep < 2) {
       setOnboardingStep(prev => prev + 1);
     } else {
-      const profile: UserProfile = {
-        name: formData.name,
-        stepGoal: parseInt(formData.stepGoal),
-        workoutGoal: parseInt(formData.workoutGoal),
-        fitnessLevel: formData.fitnessLevel,
+      // Save profile updates
+      const result = await updateProfile({
+        step_goal: parseInt(formData.stepGoal),
+        workout_goal: parseInt(formData.workoutGoal),
+        fitness_level: formData.fitnessLevel,
         preferences: formData.preferences
-      };
-      setUserProfile(profile);
-      setStepData(prev => ({ ...prev, goal: profile.stepGoal }));
-      setIsOnboarding(false);
+      });
+
+      if (result.success) {
+        setIsOnboarding(false);
+      } else {
+        alert('Failed to save profile');
+      }
     }
   };
 
@@ -205,41 +205,91 @@ export default function Home() {
     }));
   };
 
-  const requestMotionPermission = async () => {
-    if ('requestPermission' in DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function') {
-      try {
-        const response = await DeviceMotionEvent.requestPermission();
-        if (response === 'granted') {
-          alert('Motion permissions granted! Your steps will now be tracked automatically.');
-        }
-      } catch (error) {
-        console.error('Error requesting motion permission:', error);
-      }
-    }
-  };
+  // Loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-lg text-gray-600">Loading FitTracker...</p>
+        </div>
+      </div>
+    );
+  }
 
+  // Auth screen
+  if (!isAuthenticated || showAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>{authMode === 'signin' ? 'Sign In' : 'Sign Up'} to FitTracker</CardTitle>
+            <CardDescription>Your personal fitness companion</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAuth} className="space-y-4">
+              {authMode === 'signup' && (
+                <Input
+                  placeholder="Full Name"
+                  value={authForm.name}
+                  onChange={(e) => setAuthForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+              )}
+              <Input
+                type="email"
+                placeholder="Email"
+                value={authForm.email}
+                onChange={(e) => setAuthForm(prev => ({ ...prev, email: e.target.value }))}
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Password"
+                value={authForm.password}
+                onChange={(e) => setAuthForm(prev => ({ ...prev, password: e.target.value }))}
+                required
+              />
+              {authMode === 'signup' && (
+                <Input
+                  type="password"
+                  placeholder="Confirm Password"
+                  value={authForm.confirmPassword}
+                  onChange={(e) => setAuthForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  required
+                />
+              )}
+              <Button type="submit" className="w-full">
+                {authMode === 'signin' ? 'Sign In' : 'Sign Up'}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <Button
+                variant="link"
+                onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
+              >
+                {authMode === 'signin' ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Onboarding screen
   if (isOnboarding) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Welcome to FitTracker</CardTitle>
+            <CardTitle>Welcome to FitTracker, {profile?.name}!</CardTitle>
             <CardDescription>Let's set up your fitness journey</CardDescription>
-            <Progress value={(onboardingStep + 1) * 25} className="w-full" />
+            <Progress value={(onboardingStep + 1) * 33.33} className="w-full" />
           </CardHeader>
           <CardContent className="space-y-4">
             {onboardingStep === 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">What's your name?</h3>
-                <Input
-                  placeholder="Enter your name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-            )}
-
-            {onboardingStep === 1 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Set your daily step goal</h3>
                 <Input
@@ -252,7 +302,7 @@ export default function Home() {
               </div>
             )}
 
-            {onboardingStep === 2 && (
+            {onboardingStep === 1 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Fitness level & weekly workout goal</h3>
                 <div className="space-y-3">
@@ -284,7 +334,7 @@ export default function Home() {
               </div>
             )}
 
-            {onboardingStep === 3 && (
+            {onboardingStep === 2 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Workout preferences</h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -306,21 +356,17 @@ export default function Home() {
               onClick={handleOnboardingNext}
               className="w-full"
               disabled={
-                (onboardingStep === 0 && !formData.name) ||
-                (onboardingStep === 1 && !formData.stepGoal) ||
-                (onboardingStep === 2 && (!formData.workoutGoal || !formData.fitnessLevel))
+                (onboardingStep === 0 && !formData.stepGoal) ||
+                (onboardingStep === 1 && (!formData.workoutGoal || !formData.fitnessLevel))
               }
             >
-              {onboardingStep === 3 ? "Complete Setup" : "Next"}
+              {onboardingStep === 2 ? "Complete Setup" : "Next"}
             </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
-
-  const stepProgress = (stepData.daily / stepData.goal) * 100;
-  const weeklyGoal = userProfile?.workoutGoal ? userProfile.workoutGoal * 7 : 21;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -330,12 +376,21 @@ export default function Home() {
           <div className="flex justify-between items-center py-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">FitTracker</h1>
-              <p className="text-sm text-gray-600">Welcome back, {userProfile?.name}!</p>
+              <p className="text-sm text-gray-600">
+                Welcome back, {profile?.name}! {isDemoMode && <span className="text-amber-600">(Demo Mode)</span>}
+              </p>
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="secondary">🔥 {Math.floor(stepData.daily / 1000)} streak</Badge>
-              <Button variant="outline" size="sm" onClick={requestMotionPermission}>
-                Enable Step Tracking
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={isTracking ? stopTracking : startTracking}
+              >
+                {isTracking ? "Stop Tracking" : "Start Step Tracking"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                Sign Out
               </Button>
             </div>
           </div>
@@ -344,6 +399,8 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <DemoModeNotice />
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -365,9 +422,9 @@ export default function Home() {
                   <p className="text-xs text-muted-foreground">
                     Goal: {stepData.goal.toLocaleString()}
                   </p>
-                  <Progress value={Math.min(stepProgress, 100)} className="mt-2" />
+                  <Progress value={Math.min(statistics.progress, 100)} className="mt-2" />
                   <p className="text-xs text-green-600 mt-1">
-                    {stepProgress >= 100 ? "Goal achieved! 🎉" : `${Math.round(100 - stepProgress)}% to go`}
+                    {statistics.progress >= 100 ? "Goal achieved! 🎉" : `${Math.round(100 - statistics.progress)}% to go`}
                   </p>
                 </CardContent>
               </Card>
@@ -380,9 +437,9 @@ export default function Home() {
                 <CardContent>
                   <div className="text-2xl font-bold">{stepData.weekly.toLocaleString()}</div>
                   <p className="text-xs text-muted-foreground">
-                    Goal: {(userProfile?.stepGoal || 10000 * 7).toLocaleString()}/week
+                    Goal: {((profile?.step_goal || 10000) * 7).toLocaleString()}/week
                   </p>
-                  <Progress value={(stepData.weekly / (userProfile?.stepGoal || 10000 * 7)) * 100} className="mt-2" />
+                  <Progress value={Math.min(statistics.weeklyProgress, 100)} className="mt-2" />
                 </CardContent>
               </Card>
 
@@ -392,11 +449,9 @@ export default function Home() {
                   <span className="text-2xl">💪</span>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">2/{userProfile?.workoutGoal}</div>
-                  <p className="text-xs text-muted-foreground">
-                    This week
-                  </p>
-                  <Progress value={(2 / (userProfile?.workoutGoal || 3)) * 100} className="mt-2" />
+                  <div className="text-2xl font-bold">2/{profile?.workout_goal || 3}</div>
+                  <p className="text-xs text-muted-foreground">This week</p>
+                  <Progress value={(2 / (profile?.workout_goal || 3)) * 100} className="mt-2" />
                 </CardContent>
               </Card>
             </div>
@@ -405,19 +460,19 @@ export default function Home() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="p-4">
                 <div className="text-center">
-                  <div className="text-lg font-bold text-blue-600">{Math.round(stepData.daily * 0.0005 * 100) / 100}</div>
-                  <div className="text-xs text-gray-600">Miles walked</div>
+                  <div className="text-lg font-bold text-blue-600">{statistics.distance}</div>
+                  <div className="text-xs text-gray-600">Kilometers walked</div>
                 </div>
               </Card>
               <Card className="p-4">
                 <div className="text-center">
-                  <div className="text-lg font-bold text-green-600">{Math.round(stepData.daily * 0.04)}</div>
+                  <div className="text-lg font-bold text-green-600">{statistics.calories}</div>
                   <div className="text-xs text-gray-600">Calories burned</div>
                 </div>
               </Card>
               <Card className="p-4">
                 <div className="text-center">
-                  <div className="text-lg font-bold text-purple-600">{Math.round(stepData.daily * 0.8 / 60)}</div>
+                  <div className="text-lg font-bold text-purple-600">{statistics.activeMinutes}</div>
                   <div className="text-xs text-gray-600">Active minutes</div>
                 </div>
               </Card>
@@ -439,7 +494,7 @@ export default function Home() {
                   <div className="flex items-center space-x-4">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">Step goal progress: {Math.round(stepProgress)}%</p>
+                      <p className="text-sm font-medium">Step goal progress: {Math.round(statistics.progress)}%</p>
                       <p className="text-xs text-gray-600">Last updated: {stepData.lastUpdate.toLocaleTimeString()}</p>
                     </div>
                     <Badge variant="secondary">{stepData.daily} steps</Badge>
@@ -453,6 +508,19 @@ export default function Home() {
                     </div>
                     <Badge variant="secondary">{workouts.length} exercises</Badge>
                   </div>
+                  {isTracking && (
+                    <>
+                      <Separator />
+                      <div className="flex items-center space-x-4">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Step tracking active</p>
+                          <p className="text-xs text-gray-600">Device motion sensor enabled</p>
+                        </div>
+                        <Badge variant="secondary">Live</Badge>
+                      </div>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -557,10 +625,10 @@ export default function Home() {
                       <div className="border rounded-lg p-4">
                         <div className="flex items-center space-x-3 mb-3">
                           <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-sm font-bold">{userProfile?.name?.[0]}</span>
+                            <span className="text-white text-sm font-bold">{profile?.name?.[0]}</span>
                           </div>
                           <div>
-                            <p className="font-medium">{userProfile?.name}</p>
+                            <p className="font-medium">{profile?.name}</p>
                             <p className="text-xs text-gray-600">2 hours ago</p>
                           </div>
                         </div>
