@@ -296,6 +296,63 @@ export const workoutSessionService = {
       return 0
     }
     return data?.length || 0
+  },
+
+  async updateWorkoutSession(sessionId: string, updates: Partial<WorkoutSession>): Promise<WorkoutSession | null> {
+    if (isDemoMode) {
+      // Find session across all users
+      for (const [userId, sessions] of demoData.workoutSessions.entries()) {
+        const sessionIndex = sessions.findIndex(s => s.id === sessionId)
+        if (sessionIndex >= 0) {
+          const updatedSession = { ...sessions[sessionIndex], ...updates }
+          sessions[sessionIndex] = updatedSession
+          return updatedSession
+        }
+      }
+      return null
+    }
+
+    if (!supabase) return null
+
+    const { data, error } = await supabase
+      .from('workout_sessions')
+      .update(updates)
+      .eq('id', sessionId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating workout session:', error)
+      return null
+    }
+    return data
+  },
+
+  async deleteWorkoutSession(sessionId: string): Promise<boolean> {
+    if (isDemoMode) {
+      // Find and delete session across all users
+      for (const [userId, sessions] of demoData.workoutSessions.entries()) {
+        const sessionIndex = sessions.findIndex(s => s.id === sessionId)
+        if (sessionIndex >= 0) {
+          sessions.splice(sessionIndex, 1)
+          return true
+        }
+      }
+      return false
+    }
+
+    if (!supabase) return false
+
+    const { error } = await supabase
+      .from('workout_sessions')
+      .delete()
+      .eq('id', sessionId)
+
+    if (error) {
+      console.error('Error deleting workout session:', error)
+      return false
+    }
+    return true
   }
 }
 

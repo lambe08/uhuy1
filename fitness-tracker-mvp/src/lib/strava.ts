@@ -473,7 +473,7 @@ export const stravaService = {
 
   // Database connection helpers
   saveConnection: async (userId: string, tokenData: StravaTokenResponse): Promise<void> => {
-    await stravaConnectionService.upsertStravaConnection({
+    await stravaConnectionService.upsertConnection({
       user_id: userId,
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
@@ -484,10 +484,10 @@ export const stravaService = {
   },
 
   getConnection: async (userId: string): Promise<StravaConnection | null> => {
-    return await stravaConnectionService.getStravaConnection(userId)
+    return await stravaConnectionService.getConnection(userId)
   },
 
   removeConnection: async (userId: string): Promise<void> => {
-    await stravaConnectionService.deleteStravaConnection(userId)
+    await stravaConnectionService.deleteConnection(userId)
   }
 }

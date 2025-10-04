@@ -10,6 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { StravaIntegration } from "@/components/strava-integration";
 import { WorkoutSession } from "@/components/workout-session";
+import { StepAnalytics } from "@/components/step-analytics";
+import { WorkoutBuilder } from "@/components/workout-builder";
 import { useAuth } from "@/hooks/useAuth";
 import { useStepTracking } from "@/hooks/useStepTracking";
 import { isDemoMode } from "@/lib/supabase";
@@ -465,8 +467,9 @@ export default function Home() {
         <DemoModeNotice />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="workouts">Workouts</TabsTrigger>
             <TabsTrigger value="strava">Strava</TabsTrigger>
             <TabsTrigger value="social">Social</TabsTrigger>
@@ -589,17 +592,31 @@ export default function Home() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="analytics" className="mt-6">
+            <StepAnalytics
+              userId={user?.id || null}
+              stepGoal={profile?.step_goal || 10000}
+              currentSteps={stepData.daily}
+              weeklySteps={stepData.weekly}
+            />
+          </TabsContent>
+
           <TabsContent value="workouts" className="mt-6">
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Workout Library</h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => window.location.reload()}>
-                    Refresh Library
-                  </Button>
-                  <Button>Create Custom Workout</Button>
+            <Tabs defaultValue="library" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="library">Exercise Library</TabsTrigger>
+                <TabsTrigger value="builder">Custom Builder</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="library" className="space-y-6 mt-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">Workout Library</h2>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => window.location.reload()}>
+                      Refresh Library
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
               {loadingWorkouts ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -661,7 +678,34 @@ export default function Home() {
                   ))}
                 </div>
               )}
-            </div>
+              </TabsContent>
+
+              <TabsContent value="builder" className="mt-6">
+                <WorkoutBuilder
+                  userId={user?.id}
+                  onWorkoutCreated={(workout) => {
+                    console.log('Workout created:', workout)
+                    // Could integrate with database here
+                  }}
+                  onStartWorkout={(workout) => {
+                    const sessionWorkout = {
+                      id: workout.id,
+                      name: workout.name,
+                      exercises: workout.exercises.map(ex => ({
+                        id: ex.id,
+                        name: ex.name,
+                        sets: ex.sets,
+                        reps: ex.reps,
+                        duration: ex.duration,
+                        rest: ex.rest
+                      }))
+                    }
+                    setSelectedWorkout(sessionWorkout)
+                    setShowWorkoutSession(true)
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="strava" className="mt-6">
