@@ -9,9 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { StravaIntegration } from "@/components/strava-integration";
-import { WorkoutSession } from "@/components/workout-session";
-import { StepAnalytics } from "@/components/step-analytics";
-import { WorkoutBuilder } from "@/components/workout-builder";
+import WorkoutSession from "@/components/workout-session";
+import StepAnalytics from "@/components/step-analytics";
+import WorkoutBuilder from "@/components/workout-builder";
 import { useAuth } from "@/hooks/useAuth";
 import { useStepTracking } from "@/hooks/useStepTracking";
 import { isDemoMode } from "@/lib/supabase";
@@ -426,8 +426,17 @@ export default function Home() {
       <div className="min-h-screen bg-gray-50 p-4">
         <WorkoutSession
           userId={user?.id || null}
-          workout={selectedWorkout}
-          onClose={handleCloseWorkoutSession}
+          workout={{
+            ...selectedWorkout,
+            exercises: selectedWorkout.exercises.map(ex => ({
+              ...ex,
+              rest_time: ex.rest,
+              reps: ex.reps.toString(),
+              target_muscles: [],
+              instructions: `Perform ${ex.reps} reps with ${ex.rest}s rest`
+            }))
+          }}
+          onComplete={handleCloseWorkoutSession}
         />
       </div>
     );
@@ -597,7 +606,7 @@ export default function Home() {
               userId={user?.id || null}
               stepGoal={profile?.step_goal || 10000}
               currentSteps={stepData.daily}
-              weeklySteps={stepData.weekly}
+
             />
           </TabsContent>
 
@@ -682,7 +691,7 @@ export default function Home() {
 
               <TabsContent value="builder" className="mt-6">
                 <WorkoutBuilder
-                  userId={user?.id}
+                  userId={user?.id || null}
                   onWorkoutCreated={(workout) => {
                     console.log('Workout created:', workout)
                     // Could integrate with database here

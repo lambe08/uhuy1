@@ -1,665 +1,719 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Plus,
-  X,
-  Edit,
+  Trash2,
   Save,
-  Clock,
-  Target,
-  Dumbbell,
   Play,
-  Copy,
-  Star,
+  Target,
   Calendar,
-  ChevronUp,
-  ChevronDown,
-  Settings,
+  TrendingUp,
   Zap,
-  Award,
-  Timer,
-  RotateCcw
-} from "lucide-react"
+  Clock,
+  Dumbbell,
+  Settings,
+  Copy,
+  Shuffle
+} from 'lucide-react'
 
 interface Exercise {
   id: string
   name: string
   sets: number
-  reps: number
-  weight?: number
-  duration: number
-  rest: number
+  reps: string
+  rest_time: number
   instructions?: string
-  targetMuscles?: string[]
+  target_muscles?: string[]
   difficulty: 'beginner' | 'intermediate' | 'advanced'
-}
-
-interface CustomWorkout {
-  id: string
-  name: string
-  description: string
-  exercises: Exercise[]
-  estimatedDuration: number
-  targetMuscles: string[]
-  difficulty: 'beginner' | 'intermediate' | 'advanced'
-  category: string
-  createdAt: string
-  isFavorite?: boolean
+  equipment: string[]
 }
 
 interface WorkoutProgram {
   id: string
   name: string
   description: string
-  duration: number // weeks
-  workoutsPerWeek: number
-  workouts: CustomWorkout[]
-  level: 'beginner' | 'intermediate' | 'advanced'
-  goal: 'strength' | 'cardio' | 'weight_loss' | 'muscle_gain' | 'general_fitness'
+  weeks: number
+  frequency: number // workouts per week
+  difficulty: 'beginner' | 'intermediate' | 'advanced'
+  workouts: ProgramWorkout[]
+  progression: ProgressionRule[]
+}
+
+interface ProgramWorkout {
+  id: string
+  week: number
+  day: number
+  name: string
+  exercises: Exercise[]
+  focus: string
+  estimated_duration: number
+}
+
+interface ProgressionRule {
+  type: 'reps' | 'sets' | 'weight' | 'rest'
+  increment: number
+  frequency: 'weekly' | 'biweekly'
+  condition: string
 }
 
 interface WorkoutBuilderProps {
   userId: string | null
-  onWorkoutCreated?: (workout: CustomWorkout) => void
-  onStartWorkout?: (workout: CustomWorkout) => void
+  onSaveProgram?: (program: WorkoutProgram) => void
+  onStartWorkout?: (workout: ProgramWorkout) => void
 }
 
-export function WorkoutBuilder({ userId, onWorkoutCreated, onStartWorkout }: WorkoutBuilderProps) {
-  const [currentWorkout, setCurrentWorkout] = useState<CustomWorkout>({
-    id: '',
+// Pre-built exercise database for bodyweight training
+const EXERCISE_DATABASE: Exercise[] = [
+  {
+    id: 'push-up',
+    name: 'Push-ups',
+    sets: 3,
+    reps: '8-12',
+    rest_time: 60,
+    difficulty: 'beginner',
+    equipment: [],
+    target_muscles: ['chest', 'shoulders', 'triceps'],
+    instructions: 'Keep your body in a straight line from head to heels'
+  },
+  {
+    id: 'squat',
+    name: 'Bodyweight Squats',
+    sets: 3,
+    reps: '12-15',
+    rest_time: 60,
+    difficulty: 'beginner',
+    equipment: [],
+    target_muscles: ['quadriceps', 'glutes', 'calves'],
+    instructions: 'Lower until thighs are parallel to floor'
+  },
+  {
+    id: 'plank',
+    name: 'Plank',
+    sets: 3,
+    reps: '30-60s',
+    rest_time: 60,
+    difficulty: 'beginner',
+    equipment: [],
+    target_muscles: ['core', 'shoulders'],
+    instructions: 'Hold straight line from head to heels'
+  },
+  {
+    id: 'lunges',
+    name: 'Lunges',
+    sets: 3,
+    reps: '10-12 each leg',
+    rest_time: 60,
+    difficulty: 'beginner',
+    equipment: [],
+    target_muscles: ['quadriceps', 'glutes', 'hamstrings'],
+    instructions: 'Step forward and lower until both knees at 90 degrees'
+  },
+  {
+    id: 'burpees',
+    name: 'Burpees',
+    sets: 3,
+    reps: '5-8',
+    rest_time: 90,
+    difficulty: 'intermediate',
+    equipment: [],
+    target_muscles: ['full body'],
+    instructions: 'Squat, jump back to plank, jump feet back, jump up'
+  },
+  {
+    id: 'mountain-climbers',
+    name: 'Mountain Climbers',
+    sets: 3,
+    reps: '20-30',
+    rest_time: 60,
+    difficulty: 'intermediate',
+    equipment: [],
+    target_muscles: ['core', 'cardio'],
+    instructions: 'Alternate bringing knees to chest in plank position'
+  },
+  {
+    id: 'pike-pushups',
+    name: 'Pike Push-ups',
+    sets: 3,
+    reps: '6-10',
+    rest_time: 90,
+    difficulty: 'advanced',
+    equipment: [],
+    target_muscles: ['shoulders', 'triceps'],
+    instructions: 'Start in downward dog position, lower head toward ground'
+  },
+  {
+    id: 'single-leg-squat',
+    name: 'Single Leg Squats',
+    sets: 3,
+    reps: '5-8 each leg',
+    rest_time: 120,
+    difficulty: 'advanced',
+    equipment: [],
+    target_muscles: ['quadriceps', 'glutes', 'balance'],
+    instructions: 'Squat on one leg, extend other leg forward'
+  }
+]
+
+// Pre-built program templates
+const PROGRAM_TEMPLATES: Omit<WorkoutProgram, 'id'>[] = [
+  {
+    name: "Beginner Full Body",
+    description: "4-week progressive program perfect for starting your fitness journey",
+    weeks: 4,
+    frequency: 3,
+    difficulty: 'beginner',
+    workouts: [],
+    progression: [
+      { type: 'reps', increment: 2, frequency: 'weekly', condition: 'Can complete all sets' },
+      { type: 'sets', increment: 1, frequency: 'biweekly', condition: 'After 2 weeks' }
+    ]
+  },
+  {
+    name: "Intermediate Strength",
+    description: "4-week program to build strength and endurance",
+    weeks: 4,
+    frequency: 4,
+    difficulty: 'intermediate',
+    workouts: [],
+    progression: [
+      { type: 'reps', increment: 3, frequency: 'weekly', condition: 'Can complete all sets' },
+      { type: 'rest', increment: -10, frequency: 'biweekly', condition: 'Good form maintained' }
+    ]
+  },
+  {
+    name: "Advanced Conditioning",
+    description: "Intense 4-week program for experienced athletes",
+    weeks: 4,
+    frequency: 5,
+    difficulty: 'advanced',
+    workouts: [],
+    progression: [
+      { type: 'reps', increment: 4, frequency: 'weekly', condition: 'Perfect form maintained' },
+      { type: 'sets', increment: 1, frequency: 'biweekly', condition: 'After progression check' }
+    ]
+  }
+]
+
+export default function WorkoutBuilder({ userId, onSaveProgram, onStartWorkout }: WorkoutBuilderProps) {
+  const [activeTab, setActiveTab] = useState<'templates' | 'custom' | 'programs'>('templates')
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
+  const [customProgram, setCustomProgram] = useState<Partial<WorkoutProgram>>({
     name: '',
     description: '',
-    exercises: [],
-    estimatedDuration: 0,
-    targetMuscles: [],
+    weeks: 4,
+    frequency: 3,
     difficulty: 'beginner',
-    category: 'strength',
-    createdAt: new Date().toISOString()
+    workouts: [],
+    progression: []
   })
+  const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([])
+  const [currentWorkout, setCurrentWorkout] = useState<Partial<ProgramWorkout>>({
+    name: '',
+    week: 1,
+    day: 1,
+    exercises: [],
+    focus: '',
+    estimated_duration: 30
+  })
+  const [myPrograms, setMyPrograms] = useState<WorkoutProgram[]>([])
 
-  const [savedWorkouts, setSavedWorkouts] = useState<CustomWorkout[]>([])
-  const [programs, setPrograms] = useState<WorkoutProgram[]>([])
-  const [editingExercise, setEditingExercise] = useState<string | null>(null)
-  const [exerciseLibrary, setExerciseLibrary] = useState<Exercise[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
+  // Generate workouts for template programs
+  const generateTemplateWorkouts = (template: typeof PROGRAM_TEMPLATES[0]): ProgramWorkout[] => {
+    const workouts: ProgramWorkout[] = []
+    const exercisesForDifficulty = EXERCISE_DATABASE.filter(ex =>
+      ex.difficulty === template.difficulty ||
+      (template.difficulty === 'intermediate' && ex.difficulty === 'beginner') ||
+      (template.difficulty === 'advanced' && ['beginner', 'intermediate'].includes(ex.difficulty))
+    )
 
-  // Initialize exercise library with bodyweight exercises
-  useEffect(() => {
-    const defaultExercises: Exercise[] = [
-      {
-        id: '1',
-        name: 'Push-ups',
-        sets: 3,
-        reps: 12,
-        duration: 30,
-        rest: 60,
-        instructions: 'Keep body straight, lower chest to floor',
-        targetMuscles: ['chest', 'triceps', 'shoulders'],
-        difficulty: 'beginner'
-      },
-      {
-        id: '2',
-        name: 'Squats',
-        sets: 3,
-        reps: 15,
-        duration: 45,
-        rest: 60,
-        instructions: 'Feet shoulder-width apart, lower until thighs parallel',
-        targetMuscles: ['quadriceps', 'glutes', 'hamstrings'],
-        difficulty: 'beginner'
-      },
-      {
-        id: '3',
-        name: 'Plank',
-        sets: 3,
-        reps: 1,
-        duration: 60,
-        rest: 45,
-        instructions: 'Hold straight line from head to heels',
-        targetMuscles: ['core', 'shoulders'],
-        difficulty: 'beginner'
-      },
-      {
-        id: '4',
-        name: 'Burpees',
-        sets: 3,
-        reps: 10,
-        duration: 40,
-        rest: 90,
-        instructions: 'Jump down, push-up, jump up with arms overhead',
-        targetMuscles: ['full body'],
-        difficulty: 'intermediate'
-      },
-      {
-        id: '5',
-        name: 'Mountain Climbers',
-        sets: 3,
-        reps: 20,
-        duration: 45,
-        rest: 60,
-        instructions: 'Alternate bringing knees to chest in plank position',
-        targetMuscles: ['core', 'shoulders', 'legs'],
-        difficulty: 'intermediate'
-      },
-      {
-        id: '6',
-        name: 'Lunges',
-        sets: 3,
-        reps: 12,
-        duration: 60,
-        rest: 60,
-        instructions: 'Step forward, lower back knee toward ground',
-        targetMuscles: ['quadriceps', 'glutes', 'hamstrings'],
-        difficulty: 'beginner'
+    for (let week = 1; week <= template.weeks; week++) {
+      for (let day = 1; day <= template.frequency; day++) {
+        const focusAreas = ['Upper Body', 'Lower Body', 'Full Body', 'Core & Cardio', 'HIIT']
+        const focus = focusAreas[(day - 1) % focusAreas.length]
+
+        // Select exercises based on focus and week progression
+        let selectedExercises = exercisesForDifficulty.slice(0, Math.min(4 + Math.floor(week / 2), 6))
+
+        // Apply weekly progression
+        selectedExercises = selectedExercises.map(ex => ({
+          ...ex,
+          sets: ex.sets + Math.floor((week - 1) / 2),
+          reps: adjustRepsForWeek(ex.reps, week),
+          rest_time: Math.max(30, ex.rest_time - (week - 1) * 5)
+        }))
+
+        workouts.push({
+          id: `${template.name.toLowerCase().replace(/\s+/g, '-')}-w${week}d${day}`,
+          week,
+          day,
+          name: `Week ${week} Day ${day} - ${focus}`,
+          exercises: selectedExercises,
+          focus,
+          estimated_duration: 30 + (selectedExercises.length * 5)
+        })
       }
-    ]
-    setExerciseLibrary(defaultExercises)
-  }, [])
-
-  // Calculate workout metrics
-  useEffect(() => {
-    const totalDuration = currentWorkout.exercises.reduce((total, exercise) => {
-      return total + (exercise.duration * exercise.sets) + (exercise.rest * (exercise.sets - 1))
-    }, 0)
-
-    const uniqueMuscles = Array.from(new Set(
-      currentWorkout.exercises.flatMap(ex => ex.targetMuscles || [])
-    ))
-
-    setCurrentWorkout(prev => ({
-      ...prev,
-      estimatedDuration: Math.round(totalDuration / 60),
-      targetMuscles: uniqueMuscles
-    }))
-  }, [currentWorkout.exercises])
-
-  const addExerciseToWorkout = (exercise: Exercise) => {
-    const newExercise = {
-      ...exercise,
-      id: `${exercise.id}-${Date.now()}`
     }
-    setCurrentWorkout(prev => ({
-      ...prev,
-      exercises: [...prev.exercises, newExercise]
-    }))
+
+    return workouts
   }
 
-  const removeExerciseFromWorkout = (exerciseId: string) => {
-    setCurrentWorkout(prev => ({
-      ...prev,
-      exercises: prev.exercises.filter(ex => ex.id !== exerciseId)
-    }))
+  const adjustRepsForWeek = (reps: string, week: number): string => {
+    if (reps.includes('-')) {
+      const [min, max] = reps.split('-').map(r => parseInt(r.replace(/\D/g, '')) || 0)
+      const newMin = min + (week - 1)
+      const newMax = max + (week - 1) * 2
+      return reps.includes('s') ? `${newMin}-${newMax}s` : `${newMin}-${newMax}`
+    }
+    return reps
   }
 
-  const updateExercise = (exerciseId: string, updates: Partial<Exercise>) => {
-    setCurrentWorkout(prev => ({
-      ...prev,
-      exercises: prev.exercises.map(ex =>
-        ex.id === exerciseId ? { ...ex, ...updates } : ex
-      )
-    }))
+  const handleCreateFromTemplate = (templateIndex: number) => {
+    const template = PROGRAM_TEMPLATES[templateIndex]
+    const workouts = generateTemplateWorkouts(template)
+
+    const newProgram: WorkoutProgram = {
+      id: `template-${Date.now()}`,
+      ...template,
+      workouts
+    }
+
+    setMyPrograms(prev => [...prev, newProgram])
+    if (onSaveProgram) {
+      onSaveProgram(newProgram)
+    }
+    setSelectedTemplate(newProgram.id)
   }
 
-  const moveExercise = (index: number, direction: 'up' | 'down') => {
-    const exercises = [...currentWorkout.exercises]
-    const targetIndex = direction === 'up' ? index - 1 : index + 1
-
-    if (targetIndex >= 0 && targetIndex < exercises.length) {
-      [exercises[index], exercises[targetIndex]] = [exercises[targetIndex], exercises[index]]
-      setCurrentWorkout(prev => ({ ...prev, exercises }))
+  const handleAddExercise = (exercise: Exercise) => {
+    if (!selectedExercises.find(ex => ex.id === exercise.id)) {
+      setSelectedExercises(prev => [...prev, exercise])
     }
   }
 
-  const saveWorkout = () => {
-    if (!currentWorkout.name.trim()) {
-      alert('Please enter a workout name')
-      return
+  const handleRemoveExercise = (exerciseId: string) => {
+    setSelectedExercises(prev => prev.filter(ex => ex.id !== exerciseId))
+  }
+
+  const handleCreateWorkout = () => {
+    if (selectedExercises.length === 0 || !currentWorkout.name) return
+
+    const workout: ProgramWorkout = {
+      id: `custom-${Date.now()}`,
+      name: currentWorkout.name || '',
+      week: currentWorkout.week || 1,
+      day: currentWorkout.day || 1,
+      exercises: selectedExercises,
+      focus: currentWorkout.focus || '',
+      estimated_duration: selectedExercises.length * 8 + 10
     }
 
-    const workoutToSave = {
-      ...currentWorkout,
-      id: currentWorkout.id || Date.now().toString(),
-      createdAt: currentWorkout.createdAt || new Date().toISOString()
-    }
+    setCustomProgram(prev => ({
+      ...prev,
+      workouts: [...(prev.workouts || []), workout]
+    }))
 
-    setSavedWorkouts(prev => {
-      const existing = prev.find(w => w.id === workoutToSave.id)
-      if (existing) {
-        return prev.map(w => w.id === workoutToSave.id ? workoutToSave : w)
-      }
-      return [...prev, workoutToSave]
+    // Reset for next workout
+    setSelectedExercises([])
+    setCurrentWorkout({
+      name: '',
+      week: 1,
+      day: 1,
+      exercises: [],
+      focus: '',
+      estimated_duration: 30
     })
-
-    onWorkoutCreated?.(workoutToSave)
-    alert('Workout saved successfully!')
   }
 
-  const loadWorkout = (workout: CustomWorkout) => {
-    setCurrentWorkout(workout)
-  }
+  const handleSaveCustomProgram = () => {
+    if (!customProgram.name || !customProgram.workouts?.length) return
 
-  const startWorkout = (workout: CustomWorkout) => {
-    onStartWorkout?.(workout)
-  }
+    const program: WorkoutProgram = {
+      id: `custom-${Date.now()}`,
+      name: customProgram.name || '',
+      description: customProgram.description || '',
+      weeks: customProgram.weeks || 4,
+      frequency: customProgram.frequency || 3,
+      difficulty: customProgram.difficulty || 'beginner',
+      workouts: customProgram.workouts || [],
+      progression: customProgram.progression || []
+    }
 
-  const filteredExercises = exerciseLibrary.filter(exercise => {
-    const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         exercise.targetMuscles?.some(muscle =>
-                           muscle.toLowerCase().includes(searchTerm.toLowerCase())
-                         )
-    const matchesCategory = selectedCategory === 'all' ||
-                           exercise.targetMuscles?.includes(selectedCategory)
-    return matchesSearch && matchesCategory
-  })
+    setMyPrograms(prev => [...prev, program])
+    if (onSaveProgram) {
+      onSaveProgram(program)
+    }
+
+    // Reset form
+    setCustomProgram({
+      name: '',
+      description: '',
+      weeks: 4,
+      frequency: 3,
+      difficulty: 'beginner',
+      workouts: [],
+      progression: []
+    })
+  }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Dumbbell className="h-5 w-5 text-blue-500" />
-            Workout Builder
+            <Dumbbell className="h-5 w-5" />
+            Workout Program Builder
           </CardTitle>
-          <CardDescription>
-            Create custom workouts tailored to your fitness goals
-          </CardDescription>
         </CardHeader>
-      </Card>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="templates">Templates</TabsTrigger>
+              <TabsTrigger value="custom">Custom Builder</TabsTrigger>
+              <TabsTrigger value="programs">My Programs</TabsTrigger>
+            </TabsList>
 
-      <Tabs defaultValue="builder" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="builder">Workout Builder</TabsTrigger>
-          <TabsTrigger value="saved">My Workouts</TabsTrigger>
-          <TabsTrigger value="programs">Programs</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="builder" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Exercise Library */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Exercise Library
-                </CardTitle>
-                <div className="space-y-3">
-                  <Input
-                    placeholder="Search exercises..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    {['all', 'chest', 'legs', 'core', 'shoulders', 'full body'].map(category => (
-                      <Button
-                        key={category}
-                        variant={selectedCategory === category ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setSelectedCategory(category)}
-                      >
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
-                      </Button>
-                    ))}
-                  </div>
+            {/* Template Programs */}
+            <TabsContent value="templates" className="space-y-4">
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  Choose from our expertly designed 4-week programs with automatic progression
                 </div>
-              </CardHeader>
-              <CardContent className="max-h-96 overflow-y-auto">
-                <div className="space-y-2">
-                  {filteredExercises.map(exercise => (
-                    <div key={exercise.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium">{exercise.name}</p>
-                          <Badge variant="outline" size="sm">
-                            {exercise.difficulty}
+
+                {PROGRAM_TEMPLATES.map((template, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold">{template.name}</h3>
+                          <Badge variant="outline">
+                            {template.difficulty}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          {exercise.sets} sets × {exercise.reps} reps
-                        </p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {exercise.targetMuscles?.slice(0, 2).map(muscle => (
-                            <Badge key={muscle} variant="secondary" className="text-xs">
-                              {muscle}
-                            </Badge>
-                          ))}
+                        <p className="text-sm text-muted-foreground">{template.description}</p>
+                        <div className="flex gap-4 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            <span>{template.weeks} weeks</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Target className="h-4 w-4" />
+                            <span>{template.frequency}x/week</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <TrendingUp className="h-4 w-4" />
+                            <span>Auto-progression</span>
+                          </div>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => addExerciseToWorkout(exercise)}
-                      >
-                        <Plus className="h-4 w-4" />
+                      <Button onClick={() => handleCreateFromTemplate(index)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Program
                       </Button>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
 
-            {/* Workout Builder */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Current Workout
-                </CardTitle>
-                <div className="space-y-3">
-                  <Input
-                    placeholder="Workout name..."
-                    value={currentWorkout.name}
-                    onChange={(e) => setCurrentWorkout(prev => ({ ...prev, name: e.target.value }))}
-                  />
-                  <Input
-                    placeholder="Description (optional)..."
-                    value={currentWorkout.description}
-                    onChange={(e) => setCurrentWorkout(prev => ({ ...prev, description: e.target.value }))}
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      className="px-3 py-2 border rounded-md"
-                      value={currentWorkout.difficulty}
-                      onChange={(e) => setCurrentWorkout(prev => ({
-                        ...prev,
-                        difficulty: e.target.value as 'beginner' | 'intermediate' | 'advanced'
-                      }))}
-                    >
-                      <option value="beginner">Beginner</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
-                    </select>
-                    <select
-                      className="px-3 py-2 border rounded-md"
-                      value={currentWorkout.category}
-                      onChange={(e) => setCurrentWorkout(prev => ({ ...prev, category: e.target.value }))}
-                    >
-                      <option value="strength">Strength</option>
-                      <option value="cardio">Cardio</option>
-                      <option value="hiit">HIIT</option>
-                      <option value="flexibility">Flexibility</option>
-                      <option value="full_body">Full Body</option>
-                    </select>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Workout Stats */}
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="text-center p-2 border rounded-lg bg-blue-50">
-                    <Clock className="h-4 w-4 mx-auto mb-1 text-blue-500" />
-                    <p className="text-sm font-bold">{currentWorkout.estimatedDuration}m</p>
-                    <p className="text-xs text-gray-600">Duration</p>
-                  </div>
-                  <div className="text-center p-2 border rounded-lg bg-green-50">
-                    <Target className="h-4 w-4 mx-auto mb-1 text-green-500" />
-                    <p className="text-sm font-bold">{currentWorkout.exercises.length}</p>
-                    <p className="text-xs text-gray-600">Exercises</p>
-                  </div>
-                  <div className="text-center p-2 border rounded-lg bg-orange-50">
-                    <Zap className="h-4 w-4 mx-auto mb-1 text-orange-500" />
-                    <p className="text-sm font-bold">{currentWorkout.targetMuscles.length}</p>
-                    <p className="text-xs text-gray-600">Muscles</p>
-                  </div>
-                </div>
-
-                {/* Exercise List */}
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {currentWorkout.exercises.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Dumbbell className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>No exercises added yet</p>
-                      <p className="text-sm">Add exercises from the library</p>
+            {/* Custom Builder */}
+            <TabsContent value="custom" className="space-y-6">
+              {/* Program Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Program Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Program Name</label>
+                      <Input
+                        value={customProgram.name || ''}
+                        onChange={(e) => setCustomProgram(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="My Custom Program"
+                      />
                     </div>
-                  ) : (
-                    currentWorkout.exercises.map((exercise, index) => (
-                      <div key={exercise.id} className="p-3 border rounded-lg bg-gray-50">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium">{exercise.name}</h4>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => moveExercise(index, 'up')}
-                              disabled={index === 0}
-                            >
-                              <ChevronUp className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => moveExercise(index, 'down')}
-                              disabled={index === currentWorkout.exercises.length - 1}
-                            >
-                              <ChevronDown className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditingExercise(exercise.id)}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => removeExerciseFromWorkout(exercise.id)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
+                    <div>
+                      <label className="text-sm font-medium">Difficulty</label>
+                      <select
+                        value={customProgram.difficulty}
+                        onChange={(e) => setCustomProgram(prev => ({ ...prev, difficulty: e.target.value as any }))}
+                        className="w-full p-2 border rounded-md"
+                      >
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                      </select>
+                    </div>
+                  </div>
 
-                        {editingExercise === exercise.id ? (
-                          <div className="grid grid-cols-2 gap-2">
-                            <Input
-                              type="number"
-                              placeholder="Sets"
-                              value={exercise.sets}
-                              onChange={(e) => updateExercise(exercise.id, { sets: parseInt(e.target.value) || 0 })}
-                            />
-                            <Input
-                              type="number"
-                              placeholder="Reps"
-                              value={exercise.reps}
-                              onChange={(e) => updateExercise(exercise.id, { reps: parseInt(e.target.value) || 0 })}
-                            />
-                            <Input
-                              type="number"
-                              placeholder="Duration (s)"
-                              value={exercise.duration}
-                              onChange={(e) => updateExercise(exercise.id, { duration: parseInt(e.target.value) || 0 })}
-                            />
-                            <Input
-                              type="number"
-                              placeholder="Rest (s)"
-                              value={exercise.rest}
-                              onChange={(e) => updateExercise(exercise.id, { rest: parseInt(e.target.value) || 0 })}
-                            />
-                            <Button
-                              size="sm"
-                              className="col-span-2"
-                              onClick={() => setEditingExercise(null)}
-                            >
-                              <Save className="h-3 w-3 mr-1" />
-                              Save
-                            </Button>
+                  <div>
+                    <label className="text-sm font-medium">Description</label>
+                    <Input
+                      value={customProgram.description || ''}
+                      onChange={(e) => setCustomProgram(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Brief description of your program"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Weeks</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={customProgram.weeks}
+                        onChange={(e) => setCustomProgram(prev => ({ ...prev, weeks: parseInt(e.target.value) }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Workouts per Week</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="7"
+                        value={customProgram.frequency}
+                        onChange={(e) => setCustomProgram(prev => ({ ...prev, frequency: parseInt(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Exercise Selection */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-5 w-5" />
+                    Add Exercises
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {EXERCISE_DATABASE.map((exercise) => (
+                      <div key={exercise.id} className="p-3 border rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{exercise.name}</span>
+                              <Badge variant="outline">
+                                {exercise.difficulty}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {exercise.sets} sets × {exercise.reps}
+                            </div>
+                            <div className="flex gap-1 flex-wrap">
+                              {exercise.target_muscles?.map(muscle => (
+                                <Badge key={muscle} variant="secondary" className="text-xs">
+                                  {muscle}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
-                        ) : (
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Target className="h-3 w-3 text-blue-500" />
-                              <span>{exercise.sets} sets × {exercise.reps} reps</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Timer className="h-3 w-3 text-green-500" />
-                              <span>{exercise.duration}s work</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <RotateCcw className="h-3 w-3 text-orange-500" />
-                              <span>{exercise.rest}s rest</span>
-                            </div>
-                          </div>
-                        )}
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddExercise(exercise)}
+                            disabled={selectedExercises.some(ex => ex.id === exercise.id)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2 mt-4">
-                  <Button onClick={saveWorkout} className="flex-1">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Workout
-                  </Button>
-                  {currentWorkout.exercises.length > 0 && (
-                    <Button
-                      variant="outline"
-                      onClick={() => startWorkout(currentWorkout)}
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      Start
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="saved" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-yellow-500" />
-                My Saved Workouts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {savedWorkouts.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Dumbbell className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-semibold mb-2">No Saved Workouts</h3>
-                  <p className="mb-4">Create your first custom workout</p>
-                  <Button onClick={() => document.querySelector('[value="builder"]')?.click()}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Workout
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {savedWorkouts.map(workout => (
-                    <Card key={workout.id} className="hover:shadow-lg transition-shadow">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg">{workout.name}</CardTitle>
-                          <Badge variant="outline">{workout.difficulty}</Badge>
+              {/* Selected Exercises */}
+              {selectedExercises.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Selected Exercises ({selectedExercises.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {selectedExercises.map((exercise, index) => (
+                        <div key={exercise.id} className="flex items-center justify-between p-2 border rounded-lg">
+                          <div>
+                            <span className="font-medium">{exercise.name}</span>
+                            <span className="text-sm text-muted-foreground ml-2">
+                              {exercise.sets} × {exercise.reps}
+                            </span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRemoveExercise(exercise.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <CardDescription className="line-clamp-2">
-                          {workout.description || 'Custom workout'}
-                        </CardDescription>
+                      ))}
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="text-sm font-medium">Workout Name</label>
+                        <Input
+                          value={currentWorkout.name || ''}
+                          onChange={(e) => setCurrentWorkout(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="e.g., Upper Body Day 1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Focus Area</label>
+                        <Input
+                          value={currentWorkout.focus || ''}
+                          onChange={(e) => setCurrentWorkout(prev => ({ ...prev, focus: e.target.value }))}
+                          placeholder="e.g., Upper Body, Core"
+                        />
+                      </div>
+                    </div>
+
+                    <Button onClick={handleCreateWorkout} className="w-full">
+                      <Save className="h-4 w-4 mr-2" />
+                      Add Workout to Program
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Program Workouts */}
+              {customProgram.workouts && customProgram.workouts.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Program Workouts ({customProgram.workouts.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {customProgram.workouts.map((workout, index) => (
+                        <div key={workout.id} className="p-3 border rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-medium">{workout.name}</span>
+                              <div className="text-sm text-muted-foreground">
+                                {workout.exercises.length} exercises • ~{workout.estimated_duration} min
+                              </div>
+                            </div>
+                            <Badge variant="outline">{workout.focus}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    <Button onClick={handleSaveCustomProgram} className="w-full">
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Program
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* My Programs */}
+            <TabsContent value="programs" className="space-y-4">
+              {myPrograms.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <Dumbbell className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No Programs Yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Create your first program using templates or the custom builder
+                    </p>
+                    <Button onClick={() => setActiveTab('templates')}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Program
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {myPrograms.map((program) => (
+                    <Card key={program.id}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="flex items-center gap-2">
+                              {program.name}
+                              <Badge variant="outline">{program.difficulty}</Badge>
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {program.description}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline">
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-3 gap-2 text-sm">
-                            <div className="text-center">
-                              <p className="font-bold text-blue-600">{workout.estimatedDuration}m</p>
-                              <p className="text-xs text-gray-600">Duration</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="font-bold text-green-600">{workout.exercises.length}</p>
-                              <p className="text-xs text-gray-600">Exercises</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="font-bold text-orange-600">{workout.targetMuscles.length}</p>
-                              <p className="text-xs text-gray-600">Muscles</p>
-                            </div>
+                        <div className="grid grid-cols-3 gap-4 mb-4">
+                          <div className="text-center">
+                            <div className="text-lg font-bold">{program.weeks}</div>
+                            <div className="text-xs text-muted-foreground">weeks</div>
                           </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold">{program.frequency}</div>
+                            <div className="text-xs text-muted-foreground">per week</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold">{program.workouts.length}</div>
+                            <div className="text-xs text-muted-foreground">workouts</div>
+                          </div>
+                        </div>
 
-                          <div className="flex flex-wrap gap-1">
-                            {workout.targetMuscles.slice(0, 3).map(muscle => (
-                              <Badge key={muscle} variant="secondary" className="text-xs">
-                                {muscle}
-                              </Badge>
-                            ))}
-                            {workout.targetMuscles.length > 3 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{workout.targetMuscles.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => startWorkout(workout)}
-                            >
-                              <Play className="h-3 w-3 mr-1" />
-                              Start
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => loadWorkout(workout)}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const copy = { ...workout, id: Date.now().toString(), name: `${workout.name} (Copy)` }
-                                setSavedWorkouts(prev => [...prev, copy])
-                              }}
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
+                        <div className="space-y-2">
+                          {program.workouts.slice(0, 3).map((workout) => (
+                            <div key={workout.id} className="flex items-center justify-between p-2 border rounded">
+                              <div>
+                                <span className="text-sm font-medium">{workout.name}</span>
+                                <div className="text-xs text-muted-foreground">
+                                  {workout.exercises.length} exercises • ~{workout.estimated_duration} min
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => onStartWorkout?.(workout)}
+                              >
+                                <Play className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          {program.workouts.length > 3 && (
+                            <div className="text-center text-sm text-muted-foreground">
+                              +{program.workouts.length - 3} more workouts
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="programs" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-purple-500" />
-                Workout Programs
-              </CardTitle>
-              <CardDescription>
-                Structured multi-week training programs
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12 text-gray-500">
-                <Award className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">Programs Coming Soon</h3>
-                <p className="mb-4">Structured training programs will be available in a future update</p>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p>• 4-week Beginner Program</p>
-                  <p>• 8-week Strength Building</p>
-                  <p>• 12-week Body Transformation</p>
-                  <p>• Custom Program Builder</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   )
 }
