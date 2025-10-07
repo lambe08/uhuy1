@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/useAuth";
+import { isDemoMode } from "@/lib/supabase";
 
 interface StravaActivity {
   id: number;
@@ -24,10 +26,12 @@ interface StravaToken {
 }
 
 export function StravaIntegration() {
+  const { user } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [stravaToken, setStravaToken] = useState<StravaToken | null>(null);
   const [activities, setActivities] = useState<StravaActivity[]>([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadMockActivities = () => {
@@ -63,78 +67,137 @@ export function StravaIntegration() {
     setActivities(mockActivities);
   };
 
-  const loadActivities = useCallback(async (accessToken: string) => {
-    setLoading(true);
+  const loadActivities = useCallback(async () => {
+    if (!user?.id) return;
+
+    setSyncing(true);
+    setError(null);
+
     try {
-      // In a real app, this would make API calls to Strava
-      // For demo, we'll load mock data
-      loadMockActivities();
-    } catch (error) {
-      setError('Failed to load activities from Strava');
+      if (isDemoMode) {
+        // Load mock data in demo mode
+        loadMockActivities();
+        setSyncing(false);
+        return;
+      }
+
+      const response = await fetch(`/api/strava/activities?userId=${user.id}&limit=20`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch activities');
+      }
+
+      if (data.success) {
+        setActivities(data.activities);
+        setIsConnected(true);
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to load activities from Strava');
       console.error('Error loading activities:', error);
+
+      if (error.message.includes('authorization') || error.message.includes('expired')) {
+        setIsConnected(false);
+      }
     }
-    setLoading(false);
-  }, []);
+    setSyncing(false);
+  }, [user?.id]);
 
   // Check if user is already connected on component mount
   useEffect(() => {
-    const savedToken = localStorage.getItem('strava_token');
-    if (savedToken) {
-      try {
-        const token = JSON.parse(savedToken);
-        if (token.expires_at > Date.now() / 1000) {
-          setStravaToken(token);
-          setIsConnected(true);
-          loadActivities(token.access_token);
-        } else {
-          // Token expired, clear it
+    if (!user?.id) return;
+
+    if (isDemoMode) {
+      const savedToken = localStorage.getItem('strava_token');
+      if (savedToken) {
+        try {
+          const token = JSON.parse(savedToken);
+          if (token.expires_at > Date.now() / 1000) {
+            setStravaToken(token);
+            setIsConnected(true);
+            loadMockActivities();
+          } else {
+            localStorage.removeItem('strava_token');
+          }
+        } catch (error) {
+          console.error('Error parsing saved token:', error);
           localStorage.removeItem('strava_token');
         }
-      } catch (error) {
-        console.error('Error parsing saved token:', error);
-        localStorage.removeItem('strava_token');
       }
+    } else {
+      // Check connection status and load activities
+      loadActivities();
     }
-  }, [loadActivities]);
+  }, [user?.id, loadActivities]);
 
-  const initiateStravaAuth = () => {
-    // Strava OAuth2 configuration
-    const clientId = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID || 'demo_client_id';
-    const redirectUri = `${window.location.origin}/strava/callback`;
-    const scope = 'read,activity:read_all';
+  const initiateStravaAuth = async () => {
+    if (!user?.id) {
+      setError('Please log in first');
+      return;
+    }
 
-    const authUrl = `https://www.strava.com/oauth/authorize?` +
-      `client_id=${clientId}&` +
-      `response_type=code&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `approval_prompt=force&` +
-      `scope=${scope}`;
-
-    // In a real app, this would open a popup or redirect
-    // For demo purposes, we'll simulate the connection
     setLoading(true);
+    setError(null);
 
-    // Simulate OAuth flow
-    setTimeout(() => {
-      const mockToken: StravaToken = {
-        access_token: 'mock_access_token_' + Date.now(),
-        refresh_token: 'mock_refresh_token',
-        expires_at: Math.floor(Date.now() / 1000) + 21600, // 6 hours from now
-        athlete_id: 12345
-      };
+    try {
+      if (isDemoMode) {
+        // Simulate OAuth flow in demo mode
+        setTimeout(() => {
+          const mockToken: StravaToken = {
+            access_token: 'mock_access_token_' + Date.now(),
+            refresh_token: 'mock_refresh_token',
+            expires_at: Math.floor(Date.now() / 1000) + 21600, // 6 hours from now
+            athlete_id: 12345
+          };
 
-      localStorage.setItem('strava_token', JSON.stringify(mockToken));
-      setStravaToken(mockToken);
-      setIsConnected(true);
+          localStorage.setItem('strava_token', JSON.stringify(mockToken));
+          setStravaToken(mockToken);
+          setIsConnected(true);
+          setLoading(false);
+          loadMockActivities();
+        }, 2000);
+        return;
+      }
+
+      // Get authorization URL from our API
+      const response = await fetch('/api/strava/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get authorization URL');
+      }
+
+      // Redirect to Strava OAuth
+      window.location.href = data.authUrl;
+
+    } catch (error: any) {
+      setError(error.message || 'Failed to initiate Strava authorization');
+      console.error('Auth error:', error);
       setLoading(false);
-
-      // Load mock activities
-      loadMockActivities();
-    }, 2000);
+    }
   };
 
-  const disconnectStrava = () => {
-    localStorage.removeItem('strava_token');
+  const disconnectStrava = async () => {
+    if (isDemoMode) {
+      localStorage.removeItem('strava_token');
+    } else if (user?.id) {
+      // In production, you might want to revoke the token via Strava API
+      // and remove from database
+      try {
+        // Optionally call an API to clean up tokens from database
+        // await fetch('/api/strava/disconnect', { method: 'POST', ... });
+      } catch (error) {
+        console.error('Error disconnecting from database:', error);
+      }
+    }
+
     setStravaToken(null);
     setIsConnected(false);
     setActivities([]);
@@ -186,8 +249,8 @@ export function StravaIntegration() {
             <div className="flex gap-2">
               {isConnected ? (
                 <>
-                  <Button variant="outline" onClick={() => loadActivities(stravaToken?.access_token || '')}>
-                    Sync Activities
+                  <Button variant="outline" onClick={loadActivities} disabled={syncing}>
+                    {syncing ? "Syncing..." : "Sync Activities"}
                   </Button>
                   <Button variant="destructive" onClick={disconnectStrava}>
                     Disconnect
@@ -237,7 +300,7 @@ export function StravaIntegration() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {syncing ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="animate-pulse">

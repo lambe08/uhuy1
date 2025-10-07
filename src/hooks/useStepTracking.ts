@@ -8,6 +8,7 @@ interface StepData {
   monthly: number
   goal: number
   streak: number
+  lastUpdate: Date
 }
 
 interface StepStatistics {
@@ -17,6 +18,7 @@ interface StepStatistics {
   calories: number
   averageDaily: number
   bestDay: number
+  activeMinutes: number
 }
 
 interface StepHistory {
@@ -33,7 +35,8 @@ export function useStepTracking(userId: string | null, stepGoal: number = 10000)
     weekly: 0,
     monthly: 0,
     goal: stepGoal,
-    streak: 0
+    streak: 0,
+    lastUpdate: new Date()
   })
 
   const [statistics, setStatistics] = useState<StepStatistics>({
@@ -42,7 +45,8 @@ export function useStepTracking(userId: string | null, stepGoal: number = 10000)
     distance: 0,
     calories: 0,
     averageDaily: 0,
-    bestDay: 0
+    bestDay: 0,
+    activeMinutes: 0
   })
 
   const [stepHistory, setStepHistory] = useState<StepHistory[]>([])
@@ -101,13 +105,17 @@ export function useStepTracking(userId: string | null, stepGoal: number = 10000)
       ? Math.max(...stepHistory.map(day => day.steps))
       : stepData.daily
 
+    // Estimate active minutes (rough calculation: 1 minute per 100 steps)
+    const activeMinutes = Math.round(stepData.daily / 100)
+
     setStatistics({
       progress,
       weeklyProgress,
       distance: Number(distance.toFixed(2)),
       calories,
       averageDaily: Math.round(averageDaily),
-      bestDay
+      bestDay,
+      activeMinutes
     })
   }, [stepData, stepHistory])
 
@@ -242,7 +250,11 @@ export function useStepTracking(userId: string | null, stepGoal: number = 10000)
     const steps = calculateSteps(event.accelerationIncludingGravity)
     if (steps > 0) {
       stepCountRef.current += steps
-      setStepData(prev => ({ ...prev, daily: stepCountRef.current }))
+      setStepData(prev => ({
+        ...prev,
+        daily: stepCountRef.current,
+        lastUpdate: new Date()
+      }))
     }
   }, [isTracking, calculateSteps])
 
