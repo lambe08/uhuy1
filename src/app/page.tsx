@@ -13,6 +13,7 @@ import WorkoutSession from "@/components/workout-session";
 import StepAnalytics from "@/components/step-analytics";
 import WorkoutBuilder from "@/components/workout-builder";
 import { DatabaseStatus } from "@/components/database-status";
+import { PostCreator } from "@/components/post-creator";
 import { useAuth } from "@/hooks/useAuth";
 import { useStepTracking } from "@/hooks/useStepTracking";
 import { isDemoMode } from "@/lib/supabase";
@@ -56,6 +57,8 @@ export default function Home() {
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<SessionWorkout | null>(null);
   const [showWorkoutSession, setShowWorkoutSession] = useState(false);
+  const [showPostCreator, setShowPostCreator] = useState(false);
+  const [posts, setPosts] = useState<any[]>([]);
 
   // Auth form state
   const [authForm, setAuthForm] = useState({
@@ -406,6 +409,8 @@ export default function Home() {
             )}
 
             <Button
+              variant="fitness"
+              size="lg"
               onClick={handleOnboardingNext}
               className="w-full"
               disabled={
@@ -413,7 +418,7 @@ export default function Home() {
                 (onboardingStep === 1 && (!formData.workoutGoal || !formData.fitnessLevel))
               }
             >
-              {onboardingStep === 2 ? "Complete Setup" : "Next"}
+              {onboardingStep === 2 ? "🎯 Complete Setup" : "➡️ Next"}
             </Button>
           </CardContent>
         </Card>
@@ -444,9 +449,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white/90 backdrop-blur-md shadow-lg border-b border-gray-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div>
@@ -458,11 +463,11 @@ export default function Home() {
             <div className="flex items-center space-x-4">
               <Badge variant="secondary">🔥 {Math.floor(stepData.daily / 1000)} streak</Badge>
               <Button
-                variant="outline"
+                variant={isTracking ? "destructive" : "fitness"}
                 size="sm"
                 onClick={isTracking ? stopTracking : startTracking}
               >
-                {isTracking ? "Stop Tracking" : "Start Step Tracking"}
+                {isTracking ? "⏹️ Stop Tracking" : "👟 Start Step Tracking"}
               </Button>
               <Button variant="outline" size="sm" onClick={signOut}>
                 Sign Out
@@ -683,10 +688,12 @@ export default function Home() {
                           )}
                         </div>
                         <Button
+                          variant="workout"
+                          size="lg"
                           className="w-full mt-4"
                           onClick={() => handleStartWorkout(workout)}
                         >
-                          Start Workout
+                          🏋️ Start Workout
                         </Button>
                       </CardContent>
                     </Card>
@@ -729,6 +736,18 @@ export default function Home() {
 
           <TabsContent value="social" className="mt-6">
             <div className="space-y-6">
+              {/* Post Creator Modal */}
+              {showPostCreator && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <PostCreator
+                    onPostCreated={(post) => {
+                      setPosts(prev => [post, ...prev]);
+                      setShowPostCreator(false);
+                    }}
+                    onClose={() => setShowPostCreator(false)}
+                  />
+                </div>
+              )}
               <Card>
                 <CardHeader>
                   <CardTitle>Share Your Progress</CardTitle>
@@ -740,7 +759,13 @@ export default function Home() {
                       <div className="text-4xl">📸</div>
                       <p className="text-lg font-medium">Share your workout</p>
                       <p className="text-sm text-gray-600">Upload a photo or video of your latest session</p>
-                      <Button>Create Post</Button>
+                      <Button
+                        variant="premium"
+                        size="lg"
+                        onClick={() => setShowPostCreator(true)}
+                      >
+                        📸 Create Post
+                      </Button>
                     </div>
                   </div>
 

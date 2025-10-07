@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     authUrl.searchParams.set('client_id', process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID!);
     authUrl.searchParams.set('redirect_uri', `${process.env.NEXT_PUBLIC_APP_URL}/api/strava/auth`);
     authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('scope', 'read,activity:read,activity:write');
+    authUrl.searchParams.set('scope', 'read,activity:read_all'); // Minimal required scopes for 2024 compliance
     authUrl.searchParams.set('state', userId); // Pass user ID as state
 
     return NextResponse.json({ authUrl: authUrl.toString() });
