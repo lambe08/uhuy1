@@ -122,8 +122,8 @@ export default function StepAnalytics({ userId, currentSteps, stepGoal }: StepAn
             user_id: userId,
             date: today,
             steps: currentSteps,
-            calories_estimated: todayStats.calories,
-            distance_estimated: todayStats.distance * 1000, // convert to meters
+            calories_est: todayStats.calories,
+            distance_est: todayStats.distance * 1000, // convert to meters
             source: 'device_motion'
           })
         }

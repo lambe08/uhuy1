@@ -59,7 +59,7 @@ export default function WorkoutSession({ workout, userId, onComplete }: WorkoutS
     if (sessionState === 'active' && userId && sessionId) {
       const autoSave = () => {
         workoutSessionService.updateWorkoutSession(sessionId, {
-          duration_minutes: Math.floor(sessionTime / 60),
+          duration_min: Math.floor(sessionTime / 60),
           calories_estimated: calculateCalories()
         })
       }
@@ -131,7 +131,7 @@ export default function WorkoutSession({ workout, userId, onComplete }: WorkoutS
       // Create initial session record
       const newSession = await workoutSessionService.createWorkoutSession({
         user_id: userId,
-        workout_id: workout.id,
+        plan_id: workout.id,
         workout_name: workout.name,
         duration_minutes: 0,
         calories_estimated: 0,
@@ -212,7 +212,7 @@ export default function WorkoutSession({ workout, userId, onComplete }: WorkoutS
     if (sessionId) {
       try {
         await workoutSessionService.updateWorkoutSession(sessionId, {
-          duration_minutes: sessionData.duration_minutes,
+          duration_min: sessionData.duration_min,
           calories_estimated: sessionData.calories_estimated
         })
       } catch (error) {

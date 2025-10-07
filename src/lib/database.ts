@@ -599,6 +599,21 @@ export const authService = {
 }
 
 // Legacy service aliases for backward compatibility
-export const stepRecordService = stepsDailyService
-export const workoutSessionService = workoutService
+export const stepRecordService = {
+  ...stepsDailyService,
+  // Backward compatibility aliases
+  getStepRecord: stepsDailyService.getStepsDaily,
+  upsertStepRecord: stepsDailyService.upsertStepsDaily,
+  getStepHistory: stepsDailyService.getStepsHistory
+}
+
+export const workoutSessionService = {
+  ...workoutService,
+  // Backward compatibility aliases
+  createWorkoutSession: workoutService.createWorkout,
+  getWorkoutSessions: workoutService.getWorkouts,
+  updateWorkoutSession: workoutService.updateWorkout,
+  deleteWorkoutSession: workoutService.deleteWorkout
+}
+
 export const stravaConnectionService = stravaTokensService

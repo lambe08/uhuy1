@@ -1,317 +1,145 @@
-<<<<<<< HEAD
-# Fitness Tracker MVP - Development Todos
-## PRIORITAS SEGERA (Berdasarkan Spesifikasi Teknis)
+# Fitness Tracker PWA - Development Progress & Plan
 
-### 🔥 Phase 1: Supabase Setup & Database (URGENT - Demo OFF)
-- [ ] Setup .env.local dengan Supabase credentials (URL & ANON KEY)
-- [ ] Deploy database schema + RLS policies ke Supabase
-- [ ] Apply migrasi: user_profiles, steps_daily, workouts, posts, post_likes, post_comments, strava_tokens, routes
-- [ ] Test RLS: semua tabel scope auth.uid() = user_id
-- [ ] Seed data minimal untuk testing
-- [ ] **MATIKAN demo mode - data harus persist ke DB**
-
-### 🔥 Phase 2: Data Persistence (Core MVP)
-- [ ] Migrasi useStepTracking: agregasi harian → steps_daily table (source=device_motion)
-- [ ] Migrasi workout sessions: autosave ke workouts table dengan proper metadata
-- [ ] Persist user_profiles: step_goal, workout_goal, fitness_level, preferences JSONB
-- [ ] Test persistensi: verifikasi via SQL query bahwa data tersimpan
-- [ ] Implement offline/online sync logic dasar
-
-### 🔥 Phase 3: Workout Enhancement & Session Timer
-- [ ] Program Builder: 4 minggu, 3-4x/minggu, auto-progression
-- [ ] Session timer: work/rest/rounds dengan autosave realtime
-- [ ] wger API caching: edge functions 24 jam cache untuk bodyweight exercises
-- [ ] Workout history & progress analytics dashboard
-- [ ] Custom workout creation interface
-
-### 🔥 Phase 4: Complete Strava Integration (E2E + Webhook)
-- [ ] **OAuth2 E2E**: authorize → exchange → simpan access/refresh/expires_at
-- [ ] **Cloudflare Workers**: endpoint /api/strava/webhook (subscribe/verify challenge)
-- [ ] **Webhook Events**: activity → fetch detail → upsert workouts (< 60 detik)
-- [ ] **Deauth Handling**: event deauth → revoke tokens & tandai disconnect
-- [ ] **Upload FIT/TCX/GPX**: createUpload → poll status → update metadata
-- [ ] **Rate Limiting**: queue + backoff (200/15m & 2000/hari; non-upload 100/15m & 1000/hari)
-- [ ] **Error Handling**: duplicate/malformed activities
-
-### 🔥 Phase 5: Social Features MVP
-- [ ] Post creation: caption + media upload
-- [ ] **Supabase Storage**: signed URLs, MIME validation, thumbnail generation
-- [ ] Feed: infinite scroll dengan proper pagination
-- [ ] Social interactions: post_likes, post_comments tables
-- [ ] Moderation: basic content filtering
-- [ ] Media: proper image/video handling dengan compression
-
-### 🔥 Phase 6: MapLibre + OSM Compliance
-- [ ] **MapLibre GL JS integration**: route visualization
-- [ ] **OSM Tile Policy compliance**: atribusi wajib, NO bulk/prefetch
-- [ ] **GPX/TCX route display**: geojson dari routes table
-- [ ] **Provider tiles**: alternatif untuk high traffic
-- [ ] **Route tracking**: distance_m, elev_gain_m calculations
-
-### 🔥 Phase 7: Analytics, Privacy & Deployment
-- [ ] **PostHog integration**: events + feature flags
-- [ ] **Privacy controls**: disconnect Strava, export CSV/GPX, delete data
-- [ ] **GDPR compliance**: data portability + deletion capabilities
-- [ ] **Cloudflare Pages deployment**: web app
-- [ ] **Cloudflare Workers deployment**: Strava webhook endpoint
-- [ ] **Backup & monitoring**: runbooks untuk incident response
+## 📊 CURRENT STATUS ANALYSIS
+- **Foundation**: ✅ Next.js 15 + shadcn/ui setup complete
+- **UI Components**: ✅ Basic dashboard, onboarding, auth flow
+- **Step Tracking**: ✅ Web sensors implemented (demo mode)
+- **Workout Library**: ✅ wger API integration working
+- **Database**: ❌ Demo mode active - NO PERSISTENCE
+- **Strava Integration**: ❌ OAuth UI only, no backend
+- **Social Features**: ❌ UI mockup only
+- **Deployment**: ❌ Not production-ready
 
 ---
 
-## WORKFLOW TEKNIS (E2E & Berurutan)
+## 🚨 IMMEDIATE PRIORITIES (User Requirements Order)
 
-### 1) Environment Setup
-```bash
-# Isi .env.local
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+### Phase 1 — Supabase Foundation (URGENT)
+- [ ] **Setup .env.local dengan credentials Supabase**
+- [ ] **Deploy database schema dari .same/database-schema.sql**
+- [ ] **Disable isDemoMode di seluruh aplikasi**
+- [ ] **Test auth flow & RLS policies per user**
+- [ ] **Verifikasi data persistence di database**
 
-# Strava credentials
-NEXT_PUBLIC_STRAVA_CLIENT_ID=your_client_id
-STRAVA_CLIENT_SECRET=your_client_secret
+### Phase 2 — Data Persistence (Core MVP)
+- [ ] **Steps tracking → steps_daily table (source=device_motion)**
+- [ ] **Workout sessions → workouts table dengan metadata**
+- [ ] **User profiles → user_profiles table (goals, preferences)**
+- [ ] **Implementasi offline/online sync basic**
 
-# PostHog
-NEXT_PUBLIC_POSTHOG_KEY=your_posthog_key
-```
+### Phase 3 — Workout Enhancement
+- [ ] **Program Builder 4 minggu dengan auto-progression**
+- [ ] **Session Timer (work/rest/rounds) + autosave realtime**
+- [ ] **Workout history & progress analytics dashboard**
+- [ ] **wger API caching dengan edge functions (24 jam)**
 
-### 2) Database Schema Deployment
-```sql
--- Deploy ke Supabase:
--- user_profiles, steps_daily, workouts, posts, post_likes, post_comments
--- strava_tokens, routes dengan RLS policies
-```
+### Phase 4 — Complete Strava Integration (E2E)
+- [ ] **OAuth2 E2E: authorize → exchange → simpan tokens**
+- [ ] **Cloudflare Workers: webhook endpoint subscribe/verify**
+- [ ] **Webhook Events: activity → fetch detail → upsert workouts (<60s)**
+- [ ] **Deauth handling: revoke tokens & disconnect status**
+- [ ] **Upload FIT/TCX/GPX: createUpload → poll status → metadata**
+- [ ] **Rate limiting: queue + backoff (200/15m & 2000/hari)**
 
-### 3) Step Tracking (Web → Native Path)
-- **Web MVP**: DeviceMotionEvent threshold & smoothing
-- **Android**: ACTIVITY_RECOGNITION + SensorManager TYPE_STEP_COUNTER
-- **iOS**: CMPedometer + HealthKit stepCount
-- **Health Connect**: aggregate() untuk akurasi, hindari double-count
+### Phase 5 — Social Features MVP
+- [ ] **Post creation: caption + media upload (Supabase Storage)**
+- [ ] **Feed: infinite scroll dengan pagination proper**
+- [ ] **Interactions: post_likes & post_comments tables**
+- [ ] **Media handling: signed URLs + thumbnail generation**
+- [ ] **Content moderation basic**
 
-### 4) Strava Integration (Webhook-First)
-```javascript
-// Webhook endpoint (Cloudflare Workers)
-export default {
-  async fetch(request) {
-    // Handle subscription verification & activity events
-    // Respect rate limits: 200/15m & 2000/hari
-  }
-}
-```
+### Phase 6 — MapLibre + Analytics
+- [ ] **MapLibre GL JS: route visualization dengan GeoJSON**
+- [ ] **OSM Tile compliance: atribusi visible, NO bulk/prefetch**
+- [ ] **PostHog integration: events + feature flags**
+- [ ] **Privacy controls: disconnect/export/delete data**
 
-### 5) Social MVP Implementation
-- **Form posting**: media + caption validation
-- **Storage**: Supabase signed URLs + thumbnail generation
-- **Feed**: infinite scroll dengan efficient queries
-- **Interactions**: real-time likes/comments
-
----
-
-## ACCEPTANCE CRITERIA MVP
-
-### Definition of Done:
-1. ✅ **Demo mode OFF**: steps_daily, workouts, user_profiles persist di DB
-2. ❌ **Strava E2E**: connect → aktivitas via webhook (< 60 detik) → deauth handled
-3. ❌ **Social posting**: upload → feed → interactions working
-4. ❌ **Privacy controls**: disconnect/export/delete tersedia
-5. ❌ **MapLibre**: route tampil + atribusi OSM + NO bulk/prefetch
-
-### Optional MVP:
-- Upload aktivitas ke Strava (FIT/TCX/GPX)
-- Advanced analytics dengan PostHog
-- Offline sync dengan Service Worker
+### Phase 7 — Production Deployment
+- [ ] **Cloudflare Pages deployment (web app)**
+- [ ] **Cloudflare Workers deployment (webhook endpoint)**
+- [ ] **Database backup + monitoring + runbooks**
+- [ ] **PWA manifest + Service Worker (offline capability)**
 
 ---
 
-## COMPLIANCE & LEGAL REQUIREMENTS
+## 🎯 MVP DEFINITION OF DONE
 
-### Strava API Terms (2024):
-- ✅ Privacy notice implemented
-- [ ] **Webhook mandatory**: hindari polling excessive
-- [ ] **Data usage restriction**: NO AI training, owner-only display
-- [ ] **Rate limit compliance**: monitor 200/15m & 2000/hari
-- [ ] **Upload compliance**: proper FIT/TCX/GPX dengan timestamps
+### Core Requirements (User Specified):
+1. ❌ **Dashboard langkah harian/mingguan persist ke DB**
+2. ❌ **Strava connect → aktivitas via webhook (<60 detik) + deauth**
+3. ❌ **Posting (caption + media) → feed + interactions**
+4. ❌ **Privacy page + kontrol disconnect/export/delete**
+5. ❌ **Peta rute dengan atribusi OSM (no bulk/prefetch)**
 
-### OSM Tile Policy:
-- [ ] **Attribution visible**: credit OSM contributors
-- [ ] **NO bulk/prefetch**: respect tile server resources
-- [ ] **Usage policy**: follow osmfoundation.org guidelines
-
-### Data Privacy (GDPR):
-- [ ] **Data portability**: export user data (CSV/GPX)
-- [ ] **Right to deletion**: complete data removal
-- [ ] **Consent management**: granular permissions
+### Technical Compliance:
+- **Strava API**: Webhook mandatory, rate limit 200/15m & 2000/hari
+- **OSM Policy**: Attribution visible, no bulk/prefetch tiles
+- **Privacy**: GDPR compliance untuk data portability & deletion
 
 ---
 
-## TECHNICAL DEBT & CRITICAL ISSUES
+## 🔧 TECHNICAL DEBT & CRITICAL ISSUES
 
-### 🚨 Immediate Fixes:
-1. **Demo Mode**: aplikasi tidak persist data - URGENT
-2. **No Database Connection**: semua data hilang saat refresh
-3. **Mock Strava**: OAuth flow incomplete
-4. **No Media Storage**: social features butuh Supabase Storage
+### 🚨 Blocking Issues:
+1. **Demo Mode ON** - Aplikasi tidak persist data (URGENT PRIORITY)
+2. **No Database Connection** - Semua data hilang saat refresh
+3. **Incomplete Strava OAuth** - UI saja, no backend implementation
+4. **No Media Storage** - Social features butuh Supabase Storage setup
 
-### 🔧 Performance Optimizations:
+### 🔨 Performance Improvements Needed:
 - Error boundary global implementation
 - Loading states improvements
 - Service Worker untuk offline capability
-- PWA manifest optimization
 - Image optimization & lazy loading
 
 ---
 
-## DEPLOYMENT ARCHITECTURE
+## 📋 IMPLEMENTATION WORKFLOW
 
-### Frontend (PWA):
-- **Platform**: Cloudflare Pages
-- **Tech Stack**: Next.js 15 + shadcn/ui + Tailwind
-- **Features**: PWA manifest + Service Worker (offline/sync)
+### Step 1: Supabase Setup (Foundation)
+```bash
+# 1. User creates Supabase project
+# 2. Update .env.local dengan credentials
+# 3. Deploy schema dari .same/database-schema.sql
+# 4. Test auth & RLS policies
+```
 
-### Backend/Data:
-- **Database**: Supabase (Auth, Postgres, Storage, RLS)
-- **Edge Functions**: wger API caching (24 jam)
-- **Storage**: Media files dengan signed URLs
+### Step 2: Data Layer Migration
+```typescript
+// Migrate from demo data ke real persistence
+// steps_daily, workouts, user_profiles tables
+// Implement offline/online sync
+```
 
-### Webhooks & Workers:
-- **Platform**: Cloudflare Workers
-- **Purpose**: Strava webhook endpoint /api/strava/webhook
-- **Features**: Rate limiting + backoff strategies
+### Step 3: Strava Integration
+```javascript
+// OAuth2 E2E flow
+// Cloudflare Workers webhook endpoint
+// Rate limiting + error handling
+```
 
-### Analytics & Monitoring:
-- **Analytics**: PostHog (events + feature flags)
-- **Monitoring**: Error tracking + performance metrics
-- **Backup**: Automated DB backup + restore procedures
-
----
-
-## STATUS APLIKASI SAAT INI
-
-**Current State**: ~60% complete foundation
-- ✅ Next.js + shadcn/ui setup
-- ✅ Basic UI components & routing
-- ✅ Workout catalog (wger API)
-- ✅ Step tracking interface
-- ✅ Strava OAuth setup
-- ❌ Database persistence
-- ❌ Complete Strava integration
-- ❌ Social features
-- ❌ Deployment ready
-
-**Next Critical Action**: Setup Supabase environment & deploy schema untuk menghidupkan persistensi data.
-=======
-# Fitness Tracker PWA - Consolidated Development Plan
-
-## 🚨 IMMEDIATE PRIORITIES (Following User Requirements)
-
-### Phase 1 — Core & Supabase (URGENT - Foundation)
-- [ ] **Setup .env.local dengan Supabase credentials** 🔧
-- [ ] **Deploy database schema + RLS ke Supabase** 🔧
-- [ ] **Disable isDemoMode & all fallback in-memory data** 🔧
-- [ ] **Test Auth flow (signup/login) & RLS per user** 🔧
-
-### Phase 2 — Home Workout Enhancement (Next Priority)
-- [ ] **Program Builder + auto-progression features**
-- [ ] **Session Timer (work/rest/rounds) + autosave ke workouts table**
-- [ ] **Workout history & progress analytics dashboard**
-
-### Phase 3 — Steps Persistence & Analytics (Data Layer)
-- [ ] **Write steps_daily harian (source=device_motion) ke database**
-- [ ] **Weekly/monthly charts (ringkas & akurat)**
-- [ ] **Estimasi kalori/jarak dengan parameter user (berat/tinggi)**
-
-### Phase 4 — Strava Integration E2E (API Integration)
-- [ ] **OAuth E2E flow + simpan token/refresh/expires ke strava_tokens**
-- [ ] **Cloudflare Workers Webhook: subscribe/verify → handle activity/deauth**
-- [ ] **Activity upload (GPX/TCX/FIT) + status polling + metadata**
-- [ ] **Rate-limit monitor (UI) + backoff mechanism**
-
-### Phase 5 — Social MVP (Community Features)
-- [ ] **Post creation form + media upload (Supabase Storage)**
-- [ ] **Feed dengan infinite scroll (posts table)**
-- [ ] **Likes/comments system (post_likes, post_comments tables)**
-- [ ] **Content moderation basics + signed URLs + thumbnails**
-
-### Phase 6 — MapLibre & Analytics (Optional Features)
-- [ ] **MapLibre GL + OSM tiles dengan atribusi proper (no bulk/prefetch)**
-- [ ] **PostHog events & feature flags integration**
-- [ ] **Privacy settings (disconnect Strava, export/delete data)**
-- [ ] **Offline mode & background sync capabilities**
-
-### Phase 7 — Deployment & Production (Go Live)
-- [ ] **Cloudflare Pages deployment (web) + Workers (webhook)**
-- [ ] **Backup DB + error tracking + runbooks**
-- [ ] **Advanced responsive design + a11y improvements**
-- [ ] **Global error handling + skeleton states**
+### Step 4: Social Features
+```typescript
+// Supabase Storage untuk media
+// Posts, likes, comments system
+// Feed dengan infinite scroll
+```
 
 ---
 
-## 🎯 MVP Definition of Done (Acceptance Criteria)
+## 🚀 NEXT IMMEDIATE ACTION
 
-### Core Requirements:
-1. ✅ **Onboarding + target langkah/jadwal** (COMPLETED)
-2. ❌ **Dashboard langkah harian/mingguan disimpan di DB** (NEEDS SUPABASE)
-3. ❌ **Connect Strava → aktivitas via webhook (<60 dtk) + deauth handled**
-4. ❌ **Posting hasil latihan (caption + media) → feed + likes/comments**
-5. ❌ **Privacy page + kontrol disconnect/export/delete data**
+**Priority 1**: Setup Supabase environment
+- User perlu buat project Supabase
+- Deploy database schema
+- Update environment variables
+- Disable demo mode
 
-### Optional MVP Features:
-6. ❌ **MapLibre dengan atribusi OSM benar, tanpa bulk/prefetch**
-
----
-
-## 🔧 Current Technical Status
-
-### ✅ What's Working:
-- Next.js 15 + shadcn/ui + Tailwind setup
-- Basic onboarding flow + goal setting
-- Web-based step tracking (device motion sensors)
-- wger API workout catalog integration
-- Mock Strava integration UI
-- Responsive component library
-- Database schema + RLS policies ready
-
-### ❌ What Needs Implementation:
-- **Demo mode is ON** - no data persistence
-- **Real Supabase connection** - needs .env.local setup
-- **Complete Strava OAuth flow** - only UI exists
-- **Social posting features** - not implemented
-- **Webhook endpoints** - needs Cloudflare Workers
-- **Media storage** - needs Supabase Storage setup
+**Priority 2**: Implement data persistence
+- Migrate step tracking ke database
+- Implement user profiles storage
+- Add workout session persistence
 
 ---
 
-## 📋 Implementation Sequence
-
-Based on the user's requirements, we'll follow this exact order:
-
-1. **SUPABASE FOUNDATION** → Setup .env.local, deploy schema, disable demo mode
-2. **DATA PERSISTENCE** → steps_daily, workouts, user_profiles storage
-3. **WORKOUT ENHANCEMENT** → Session timer, program builder, analytics
-4. **STRAVA COMPLETE** → OAuth E2E, webhooks, upload functionality
-5. **SOCIAL MVP** → Posting, feed, media storage, interactions
-6. **EXTRAS** → MapLibre, PostHog, privacy controls
-7. **DEPLOYMENT** → Cloudflare Pages/Workers, monitoring
-
----
-
-## 🚨 Critical Dependencies
-
-### Requires User Action:
-1. **Supabase Project Setup** - User must create account & project
-2. **Environment Variables** - User must fill .env.local
-3. **Cloudflare Account** - For Workers deployment (Phase 4+)
-4. **Strava App Registration** - For OAuth credentials
-
-### Ready to Implement:
-- Database schema (SQL files ready)
-- Component architecture (75% complete)
-- API integration patterns (established)
-- TypeScript types (defined)
-
----
-
-**CURRENT STATUS**: Ready untuk Phase 1 execution. Butuh Supabase setup dari user untuk proceed.
-
-**NEXT ACTION**: Setup Supabase environment atau implement demo mode improvements sambil menunggu setup.
->>>>>>> 1180b17ad123fe458e50629b95322f81596ef6de
+**STATUS**: Ready untuk execution Phase 1. Waiting for Supabase setup to proceed with data persistence implementation.

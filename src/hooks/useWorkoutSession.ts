@@ -181,10 +181,10 @@ export function useWorkoutSession(userId: string | null) {
       // Save workout session to database
       await workoutSessionService.createWorkout({
         user_id: userId,
-        workout_id: session.workoutId,
-        workout_name: session.workoutName,
-        duration_minutes: duration,
-        calories_estimated: caloriesEstimated,
+        type: session.workoutName,
+        plan_id: session.workoutId,
+        duration_min: duration,
+        calories_est: caloriesEstimated,
         completed_at: endTime.toISOString(),
         source: 'app'
       })

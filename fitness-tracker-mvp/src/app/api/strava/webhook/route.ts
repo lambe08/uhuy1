@@ -149,10 +149,10 @@ async function handleNewActivity(activityId: number, userId: string, accessToken
     // Convert Strava activity to our workout session format
     const workoutSession = {
       user_id: userId,
-      workout_id: `strava_${activityId}`,
-      workout_name: activity.name,
-      duration_minutes: Math.round(activity.moving_time / 60),
-      calories_estimated: activity.calories || estimateCalories(activity),
+      type: activity.name,
+      plan_id: `strava_${activityId}`,
+      duration_min: Math.round(activity.moving_time / 60),
+      calories_est: activity.calories || estimateCalories(activity),
       completed_at: activity.start_date,
       source: 'strava' as const,
       strava_activity_id: activityId

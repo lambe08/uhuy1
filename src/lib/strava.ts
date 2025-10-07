@@ -478,7 +478,6 @@ export const stravaService = {
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
       expires_at: tokenData.expires_at,
-      athlete_id: tokenData.athlete.id,
       scope: tokenData.scope
     })
   },

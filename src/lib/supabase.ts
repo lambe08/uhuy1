@@ -14,6 +14,8 @@ export const supabase = isDemoMode ? null : createClient(supabaseUrl, supabaseAn
 // Database Types - Updated to match new schema
 export interface UserProfile {
   user_id: string
+  name?: string // Added name field for user display
+  email?: string // Added email field for user info
   step_goal: number
   workout_goal: number
   fitness_level: 'beginner' | 'intermediate' | 'advanced'

@@ -82,8 +82,8 @@ export function useStepTracking(userId: string | null, stepGoal: number = 10000)
         user_id: userId,
         date: today,
         steps,
-        calories_estimated: calories,
-        distance_estimated: distance,
+        calories_est: calories,
+        distance_est: distance,
         source: 'device_motion'
       })
     } catch (error) {

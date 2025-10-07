@@ -692,8 +692,8 @@ export default function Home() {
               <TabsContent value="builder" className="mt-6">
                 <WorkoutBuilder
                   userId={user?.id || null}
-                  onWorkoutCreated={(workout) => {
-                    console.log('Workout created:', workout)
+                  onSaveProgram={(program) => {
+                    console.log('Program saved:', program)
                     // Could integrate with database here
                   }}
                   onStartWorkout={(workout) => {
@@ -704,9 +704,9 @@ export default function Home() {
                         id: ex.id,
                         name: ex.name,
                         sets: ex.sets,
-                        reps: ex.reps,
-                        duration: ex.duration,
-                        rest: ex.rest
+                        reps: parseInt(ex.reps.split('-')[0]) || 10,
+                        duration: workout.estimated_duration * 60,
+                        rest: ex.rest_time
                       }))
                     }
                     setSelectedWorkout(sessionWorkout)
