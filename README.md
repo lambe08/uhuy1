@@ -1,23 +1,25 @@
-# FitTracker PWA - Enhanced Fitness Tracking App
+# FitHome+ - Home Workout & Fitness Tracker PWA
 
-A comprehensive Progressive Web App for fitness tracking with home workouts, step counting, Strava integration, and social features.
+A comprehensive Progressive Web App for **home workouts without equipment**, step tracking, Strava activity sync, and social fitness community. Built with Next.js 15, TypeScript, Supabase, and modern PWA features.
 
 ## Features
 
-### ✅ Core Features (Implemented)
-- **Step Tracking**: PWA-based step counting with device motion sensors
-- **Home Workouts**: Bodyweight and minimal equipment exercises from wger.de API
-- **Authentication**: User profiles and goal setting with Supabase
-- **Social Features**: Post workout results with media uploads
-- **Strava Integration**: OAuth, activity sync, and webhook support
-- **Progressive Web App**: Offline support and mobile-optimized
+### ✅ Core Features
+- **🏠 Home Workouts**: Bodyweight and minimal equipment exercises from wger.de API (no gym required!)
+- **👟 Step Tracking**: Device motion sensor-based step counting with daily/weekly goals
+- **🏃 Strava Integration**: OAuth 2.0 authentication, activity sync, and webhook real-time updates
+- **📱 Social Feed**: Share workouts, upload media, like and comment on posts
+- **🔐 Authentication**: Secure user profiles with Supabase Auth and Row-Level Security
+- **💾 Offline-First**: Progressive Web App with service worker caching
+- **📊 Analytics**: Weekly workout summaries, step progress, and fitness insights
 
-### 🎯 MVP Compliance
-- **wger API Integration**: Exercise library with 24-hour caching
-- **Strava API Compliance**: Rate limiting, privacy compliance, owner-only data access
-- **Health Data**: Privacy-focused step tracking and workout analytics
-- **Media Storage**: Supabase Storage for photo/video uploads
-- **Real-time Sync**: Webhook-based Strava activity updates
+### 🎯 Technical Highlights
+- **wger API**: Exercise library with ETag-based 24-hour caching for efficiency
+- **Strava 2024 Compliance**: Minimal scopes (`read, activity:read_all`), rate limiting (200/15min, 2000/day)
+- **Privacy-First**: RLS policies, encrypted tokens, owner-only data access
+- **Supabase Storage**: Secure media uploads with signed URLs
+- **Webhook Handlers**: Real-time activity synchronization from Strava
+- **Free Tier Only**: All services use free tiers (Supabase, Strava Dev, wger.de)
 
 ## Quick Setup
 
@@ -41,7 +43,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ### 2. Database Setup
 1. Create a Supabase project at [supabase.com](https://supabase.com)
 2. Run the SQL from `.same/database-schema.sql` in your Supabase SQL Editor
-3. Create a Storage bucket named `posts` for media uploads
+3. Create Storage buckets:
+   - `avatars` (for user profile pictures)
+   - `post_images` (for workout post media)
+4. Set bucket policies to allow authenticated users to upload their own files
 
 ### 3. Run Development Server
 ```bash

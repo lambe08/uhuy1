@@ -264,10 +264,10 @@ export default function Home() {
   // Loading state
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-lg text-gray-600">Loading FitTracker...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600 mx-auto"></div>
+          <p className="mt-4 text-lg text-gray-600">Loading FitHome+...</p>
         </div>
       </div>
     );
@@ -276,11 +276,11 @@ export default function Home() {
   // Auth screen
   if (!isAuthenticated || showAuth) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>{authMode === 'signin' ? 'Sign In' : 'Sign Up'} to FitTracker</CardTitle>
-            <CardDescription>Your personal fitness companion</CardDescription>
+            <CardTitle>{authMode === 'signin' ? 'Sign In' : 'Sign Up'} to FitHome+</CardTitle>
+            <CardDescription>Home workouts, activity tracking, social fitness community</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAuth} className="space-y-4">
@@ -337,11 +337,11 @@ export default function Home() {
   // Onboarding screen
   if (isOnboarding) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Welcome to FitTracker, {profile?.name}!</CardTitle>
-            <CardDescription>Let's set up your fitness journey</CardDescription>
+            <CardTitle>Welcome to FitHome+, {profile?.name}!</CardTitle>
+            <CardDescription>Let's set up your home workout journey</CardDescription>
             <Progress value={(onboardingStep + 1) * 33.33} className="w-full" />
           </CardHeader>
           <CardContent className="space-y-4">
@@ -449,14 +449,14 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-md shadow-lg border-b border-gray-200/50">
+      <header className="bg-white/90 backdrop-blur-md shadow-lg border-b border-emerald-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">FitTracker</h1>
-              <p className="text-sm text-gray-600">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">FitHome+</h1>
+              <p className="text-sm text-slate-600">
                 Welcome back, {profile?.name}! {isDemoMode && <span className="text-amber-600">(Demo Mode)</span>}
               </p>
             </div>

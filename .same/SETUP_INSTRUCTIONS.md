@@ -1,11 +1,12 @@
-# 🚀 Fitness Tracker PWA - Complete Setup Guide
+# 🚀 FitHome+ - Complete Setup Guide
 
 ## 📋 Prerequisites
 
-- Node.js 18+
-- Bun package manager
+- Node.js 18+ or Bun 1.0+
+- Bun package manager (recommended) or npm/pnpm
 - Git
 - Supabase account (free tier available)
+- (Optional) Strava account for activity sync
 
 ## 🏗️ Phase 1: Supabase Database Setup (CRITICAL FIRST STEP)
 
@@ -51,17 +52,43 @@
    - `user_profiles`
    - `steps_daily`
    - `workouts`
+   - `workout_steps` (NEW)
+   - `strava_tokens`
+   - `strava_activities` (NEW)
    - `posts`
    - `post_likes`
    - `post_comments`
-   - `strava_tokens`
    - `routes`
 
-### Step 5: Verify Setup
+### Step 5: Setup Storage Buckets
+
+1. **Go to Storage in Supabase Dashboard**
+2. **Create two buckets:**
+   - Name: `avatars`
+     - Public: Yes
+     - File size limit: 2MB
+     - Allowed MIME types: `image/*`
+
+   - Name: `post_images`
+     - Public: Yes
+     - File size limit: 5MB
+     - Allowed MIME types: `image/*, video/*`
+
+3. **Set bucket policies (go to Policies tab for each bucket):**
+   - Create policy: "Users can upload their own files"
+   - Operations: INSERT
+   - Policy: `auth.uid() = (storage.foldername(name))[1]::uuid`
+
+   - Create policy: "Anyone can view files"
+   - Operations: SELECT
+   - Policy: `true`
+
+### Step 6: Verify Setup
 
 1. **Go to Table Editor in Supabase**
-2. **Check that all tables exist with proper columns**
+2. **Check that all 10 tables exist with proper columns**
 3. **Verify RLS (Row Level Security) is enabled on all tables**
+4. **Check Storage buckets are created (avatars, post_images)**
 
 ### Step 6: Test Authentication
 
@@ -144,14 +171,18 @@ NEXT_PUBLIC_STRAVA_REDIRECT_URI=http://localhost:3000/strava/callback
 ## 📊 Verification Checklist
 
 - [ ] Supabase project created
-- [ ] Database schema deployed (8 tables)
-- [ ] RLS policies enabled
-- [ ] Environment variables configured
-- [ ] `.env.local` contains real credentials
+- [ ] Database schema deployed (10 tables including workout_steps & strava_activities)
+- [ ] RLS policies enabled on all tables
+- [ ] Storage buckets created (avatars, post_images)
+- [ ] Storage policies configured
+- [ ] Environment variables configured (`.env.local`)
+- [ ] `.env.local` contains real credentials (not demo values)
 - [ ] Development server starts without errors
-- [ ] No "Demo Mode" banner visible
-- [ ] Can sign up/login users
+- [ ] No "Demo Mode" banner visible on app
+- [ ] Can sign up/login users successfully
 - [ ] User profile gets created automatically
+- [ ] wger API exercises loading (check Workouts tab)
+- [ ] (Optional) Strava OAuth configured and working
 
 ---
 

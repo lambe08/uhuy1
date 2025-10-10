@@ -62,9 +62,10 @@ interface RateLimit {
   daily: { limit: number; usage: number; resetTime: number }
 }
 
+// Strava 2024 rate limits: 200 requests per 15 minutes, 2000 per day
 let rateLimit: RateLimit = {
-  shortTerm: { limit: 600, usage: 0, resetTime: Date.now() + 15 * 60 * 1000 },
-  daily: { limit: 30000, usage: 0, resetTime: Date.now() + 24 * 60 * 60 * 1000 }
+  shortTerm: { limit: 200, usage: 0, resetTime: Date.now() + 15 * 60 * 1000 },
+  daily: { limit: 2000, usage: 0, resetTime: Date.now() + 24 * 60 * 60 * 1000 }
 }
 
 // Strava API Configuration
@@ -181,13 +182,16 @@ export const stravaService = {
     }
 
     const redirectUri = `${window.location.origin}/strava/callback`
-    const scope = 'read,activity:read_all,activity:write'
+    // Minimal scopes for 2024 compliance: only request what we need
+    // read: basic athlete info
+    // activity:read_all: read activities (required for activity sync)
+    const scope = 'read,activity:read_all'
 
     const params = new URLSearchParams({
       client_id: clientId,
       response_type: 'code',
       redirect_uri: redirectUri,
-      approval_prompt: 'force',
+      approval_prompt: 'auto', // Changed from 'force' to 'auto' for better UX
       scope: scope,
       ...(state && { state })
     })
@@ -203,7 +207,7 @@ export const stravaService = {
         access_token: `demo_access_${Date.now()}`,
         refresh_token: `demo_refresh_${Date.now()}`,
         expires_at: Math.floor(Date.now() / 1000) + 21600, // 6 hours
-        scope: 'read,activity:read_all,activity:write',
+        scope: 'read,activity:read_all',
         athlete: {
           id: 12345,
           username: 'demo_athlete',
@@ -259,7 +263,7 @@ export const stravaService = {
         access_token: `demo_access_refreshed_${Date.now()}`,
         refresh_token: refreshToken,
         expires_at: Math.floor(Date.now() / 1000) + 21600,
-        scope: 'read,activity:read_all,activity:write',
+        scope: 'read,activity:read_all',
         athlete: {
           id: 12345,
           username: 'demo_athlete',

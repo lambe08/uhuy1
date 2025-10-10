@@ -71,13 +71,55 @@ CREATE TABLE post_comments (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Strava Tokens Table (renamed from strava_connections to match specification)
+-- Workout Steps Table (for detailed workout structure)
+CREATE TABLE workout_steps (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  workout_id UUID REFERENCES workouts(id) ON DELETE CASCADE,
+  step_number INTEGER NOT NULL,
+  exercise_id TEXT,
+  exercise_name TEXT NOT NULL,
+  sets INTEGER DEFAULT 1,
+  reps TEXT, -- Can be "10-12" or "10" etc
+  duration_seconds INTEGER,
+  rest_seconds INTEGER DEFAULT 60,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(workout_id, step_number)
+);
+
+-- Strava Tokens Table (encrypted storage for security)
 CREATE TABLE strava_tokens (
   user_id UUID REFERENCES user_profiles(user_id) ON DELETE CASCADE PRIMARY KEY,
   access_token TEXT NOT NULL,
   refresh_token TEXT NOT NULL,
   expires_at BIGINT NOT NULL,
   scope TEXT NOT NULL,
+  athlete_id BIGINT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Strava Activities Table (mirror of Strava data for local access)
+CREATE TABLE strava_activities (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+  strava_id BIGINT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  sport_type TEXT,
+  distance_meters DECIMAL(10,2),
+  moving_time_seconds INTEGER,
+  elapsed_time_seconds INTEGER,
+  total_elevation_gain DECIMAL(8,2),
+  start_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  average_speed DECIMAL(8,2),
+  max_speed DECIMAL(8,2),
+  average_heartrate INTEGER,
+  max_heartrate INTEGER,
+  calories DECIMAL(8,2),
+  map_polyline TEXT,
+  linked_workout_id UUID REFERENCES workouts(id) ON DELETE SET NULL,
+  synced_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -94,6 +136,9 @@ CREATE TABLE routes (
 -- Create indexes for better performance
 CREATE INDEX idx_steps_daily_user_date ON steps_daily(user_id, date);
 CREATE INDEX idx_workouts_user_completed ON workouts(user_id, completed_at);
+CREATE INDEX idx_workout_steps_workout_id ON workout_steps(workout_id, step_number);
+CREATE INDEX idx_strava_activities_user_id ON strava_activities(user_id, start_date DESC);
+CREATE INDEX idx_strava_activities_strava_id ON strava_activities(strava_id);
 CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
 CREATE INDEX idx_post_likes_post_id ON post_likes(post_id);
 CREATE INDEX idx_post_comments_post_id ON post_comments(post_id);
@@ -102,7 +147,9 @@ CREATE INDEX idx_post_comments_post_id ON post_comments(post_id);
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE steps_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workout_steps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE strava_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE strava_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE post_likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE post_comments ENABLE ROW LEVEL SECURITY;
@@ -120,8 +167,16 @@ CREATE POLICY "Users can update own steps_daily" ON steps_daily FOR UPDATE USING
 CREATE POLICY "Users can view own workouts" ON workouts FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own workouts" ON workouts FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+CREATE POLICY "Users can view own workout steps" ON workout_steps FOR SELECT
+USING (EXISTS (SELECT 1 FROM workouts WHERE workouts.id = workout_steps.workout_id AND workouts.user_id = auth.uid()));
+CREATE POLICY "Users can manage own workout steps" ON workout_steps FOR ALL
+USING (EXISTS (SELECT 1 FROM workouts WHERE workouts.id = workout_steps.workout_id AND workouts.user_id = auth.uid()));
+
 CREATE POLICY "Users can view own strava tokens" ON strava_tokens FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own strava tokens" ON strava_tokens FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own strava activities" ON strava_activities FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own strava activities" ON strava_activities FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can view own routes" ON routes FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own routes" ON routes FOR ALL USING (auth.uid() = user_id);

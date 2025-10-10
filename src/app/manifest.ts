@@ -2,13 +2,13 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'FitTracker - Personal Fitness Companion',
-    short_name: 'FitTracker',
-    description: 'Track your fitness journey with home workouts, step counting, Strava integration, and social features',
+    name: 'FitHome+ - Home Workout & Fitness Tracker',
+    short_name: 'FitHome+',
+    description: 'Home workouts without equipment, step tracking, Strava sync, and social fitness community',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',
-    theme_color: '#2563eb',
+    theme_color: '#059669',
     orientation: 'portrait',
     scope: '/',
     icons: [

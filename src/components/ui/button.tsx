@@ -10,18 +10,18 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl focus-visible:ring-blue-500",
+          "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl focus-visible:ring-emerald-500 border border-emerald-700/20",
         destructive:
-          "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg hover:shadow-xl focus-visible:ring-red-500",
+          "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-lg hover:shadow-xl focus-visible:ring-red-500 border border-red-700/20",
         outline:
-          "border-2 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 text-gray-700 shadow-sm hover:shadow-md focus-visible:ring-gray-400",
+          "border-2 border-emerald-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 text-emerald-800 shadow-sm hover:shadow-md focus-visible:ring-emerald-400",
         secondary:
-          "bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-800 shadow-sm hover:shadow-md focus-visible:ring-gray-400",
-        ghost: "hover:bg-gray-100 hover:text-gray-900 text-gray-600",
-        link: "text-blue-600 underline-offset-4 hover:underline hover:text-blue-700",
-        fitness: "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl focus-visible:ring-green-500",
-        workout: "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl focus-visible:ring-orange-500",
-        premium: "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl focus-visible:ring-purple-500",
+          "bg-gradient-to-r from-slate-100 to-slate-200 hover:from-slate-200 hover:to-slate-300 text-slate-800 shadow-sm hover:shadow-md focus-visible:ring-slate-400 border border-slate-300/50",
+        ghost: "hover:bg-emerald-100 hover:text-emerald-900 text-slate-600",
+        link: "text-emerald-600 underline-offset-4 hover:underline hover:text-emerald-700",
+        fitness: "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl focus-visible:ring-green-500 border border-green-700/20",
+        workout: "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg hover:shadow-xl focus-visible:ring-orange-500 border border-orange-700/20",
+        premium: "bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl focus-visible:ring-teal-500 border border-teal-700/20",
       },
       size: {
         default: "h-10 px-6 py-2",

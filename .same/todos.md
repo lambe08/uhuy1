@@ -1,139 +1,142 @@
-# TODOS — Home Workout + Strava (MVP) - Development Session
+# FitHome+ Development Todos - Penyempurnaan Aplikasi
 
-## 🔄 CURRENT SESSION TASKS
+## 📊 STATUS SAAT INI
+Repository berhasil di-clone dari: https://github.com/lambe08/uhuy1.git
 
-### ✅ COMPLETED IN THIS SESSION:
-- [x] Cloned repository from GitHub (https://github.com/lambe08/uhuy1.git)
-- [x] Analyzed existing codebase structure
-- [x] Installed dependencies with bun
-- [x] Created .env.local file for demo mode setup
-- [x] Started development server successfully
-- [x] **Enhanced UI Components** - Added gradient buttons, enhanced cards with backdrop blur
-- [x] **Improved Button Variants** - Added fitness, workout, premium button themes
-- [x] **Social Post Creator** - Integrated modal for creating posts with media upload
-- [x] **Enhanced Backgrounds** - Added fitness-themed gradients throughout app
-- [x] **PWA Service Worker** - Created comprehensive offline-first service worker
-- [x] **Offline Fallback Page** - Beautiful offline page with network status monitoring
-- [x] **PWA Manifest Enhancement** - Improved app manifest with shortcuts and features
-- [x] **Strava OAuth Compliance** - Updated to use minimal scopes for 2024 compliance
+### ✅ YANG SUDAH ADA:
+- [x] Next.js 15 + App Router setup
+- [x] TypeScript + Tailwind CSS + shadcn/ui
+- [x] Supabase integration basics
+- [x] Database schema (profiles, workouts, sessions, posts, strava_tokens)
+- [x] PWA manifest & service worker basics
+- [x] Komponen UI dasar (Button, Card, Input, Progress, Tabs)
+- [x] Hook custom (useAuth, useWorkoutSession, useStepTracking)
+- [x] API route handlers structure (posts, workouts, strava)
+- [x] Strava OAuth skeleton
+- [x] Social feed struktur dasar
 
-### 🎯 REMAINING IMPROVEMENTS:
-- [x] **Enhanced PWA Features**: ✅ Service worker and offline capabilities completed
-- [x] **Real Strava Integration**: ✅ OAuth flow with 2024 compliance completed
-- [x] **Social Features**: ✅ Posting system with media uploads completed
-- [x] **UI/UX Improvements**: ✅ Enhanced design with gradients and modern styling
-- [ ] **Performance Optimization**: Optimize loading times and responsiveness
-- [ ] **Advanced Workout Features**: Add more sophisticated workout tracking
-- [ ] **Real Database Setup**: Configure actual Supabase instance for production
+## 🎯 FASE PENGEMBANGAN
 
-## 📋 ANALYSIS OF EXISTING CODEBASE
+### FASE 1: Setup & Environment ⏳
+- [ ] Buat .env.example dengan semua variabel yang dibutuhkan
+- [ ] Install dependencies yang kurang (jika ada)
+- [ ] Update package.json jika perlu
+- [ ] Setup Supabase credentials
+- [ ] Verifikasi dev server berjalan
 
-### ✅ **WELL-IMPLEMENTED FEATURES:**
-1. **Authentication System** ✅
-   - Supabase Auth integration
-   - User onboarding flow
-   - Profile management
+### FASE 2: Database & RLS Enhancement 🔒
+- [ ] Review & update database schema sesuai spec
+- [ ] Tambah tabel workout_steps jika belum ada
+- [ ] Tambah tabel strava_activities
+- [ ] Lengkapi semua RLS policies
+- [ ] Setup Storage buckets (avatars, post_images) dengan policies
+- [ ] Tambah indexes yang optimal
+- [ ] Buat seed data minimal
 
-2. **Step Tracking** ✅
-   - Device Motion API integration
-   - Daily/weekly tracking
-   - Goal setting and progress monitoring
+### FASE 3: wger API Integration 💪
+- [ ] Implementasi fetcher wger API dengan cache ETag
+- [ ] Filter exercises: bodyweight/minimal equipment
+- [ ] Mapping kategori & muscle groups
+- [ ] Cache lokal 24 jam
+- [ ] Error handling & fallback
+- [ ] UI untuk workout builder dengan katalog wger
 
-3. **Workout Library** ✅
-   - wger.de API integration
-   - Exercise categorization
-   - Basic workout session structure
+### FASE 4: Strava Integration (2024 Compliance) 🏃
+- [ ] Update OAuth scopes sesuai 2024 requirements
+- [ ] Implementasi rate limiter (200/15min, 2000/day)
+- [ ] Auto-refresh token mechanism
+- [ ] Fetch activities dengan normalisasi data
+- [ ] Webhook verification (challenge)
+- [ ] Webhook handler (create/update events)
+- [ ] Link Strava activities ke local sessions
+- [ ] Privacy compliance (owner-only data)
 
-4. **Strava Foundation** ✅
-   - OAuth setup structure
-   - API endpoint foundations
-   - Webhook handling framework
+### FASE 5: Home Workout Features 🏠
+- [ ] Workout builder dengan preferensi user
+- [ ] Filter: tanpa alat, alat minimal
+- [ ] Workout template system
+- [ ] Session tracker (timer, reps, durasi, RPE)
+- [ ] Progress recording
+- [ ] Analytics ringan (weekly summary)
 
-5. **PWA Foundation** ✅
-   - Basic manifest setup
-   - Service worker structure
-   - Mobile-responsive design
+### FASE 6: Social Feed Enhancement 📱
+- [ ] Post creator dengan media upload
+- [ ] Supabase Storage integration (images)
+- [ ] Post feed dengan infinite scroll
+- [ ] Like/unlike functionality
+- [ ] Comment system
+- [ ] Share link generation
+- [ ] Profil publik minimal
 
-### 🔧 **AREAS FOR ENHANCEMENT:**
+### FASE 7: PWA Enhancement 📲
+- [ ] Finalisasi manifest.ts (ikon 192/512)
+- [ ] Service Worker cache strategies
+- [ ] Offline shell & aset caching
+- [ ] Add to Home Screen prompt
+- [ ] Push notifications (optional)
+- [ ] Background sync
+- [ ] Uji installability
 
-1. **Strava Integration Compliance**
-   - [ ] Update OAuth scopes to minimal required (`read,activity:read_all`)
-   - [ ] Implement proper rate limiting (200/15min, 2000/day)
-   - [ ] Ensure data privacy compliance (owner-only access)
-   - [ ] Update webhook verification for 2024 API requirements
+### FASE 8: UI/UX Customization 🎨
+- [ ] Customize shadcn/ui components (unique design)
+- [ ] Enhanced button variants (fitness theme)
+- [ ] Card components dengan backdrop blur
+- [ ] Responsive layouts untuk semua screen
+- [ ] Loading states & skeletons
+- [ ] Error boundaries & error handling
+- [ ] Accessibility improvements (a11y)
 
-2. **Exercise Library Enhancement**
-   - [ ] Improve wger.de API caching (24-hour strategy)
-   - [ ] Add exercise images and better descriptions
-   - [ ] Implement bodyweight/minimal equipment filtering
-   - [ ] Add muscle group targeting
+### FASE 9: Security & Validation 🔐
+- [ ] Input validation dengan Zod/Valibot
+- [ ] Sanitasi konten posting
+- [ ] Content Security Policy setup
+- [ ] Token encryption untuk Strava
+- [ ] Server-side API calls only
+- [ ] Rate limiting untuk API endpoints
 
-3. **Social Features Completion**
-   - [ ] Complete Supabase Storage integration for media
-   - [ ] Implement photo/video upload functionality
-   - [ ] Add post creation and feed display
-   - [ ] Enable likes and comments system
+### FASE 10: Testing & Deployment 🚀
+- [ ] Unit tests untuk pure functions
+- [ ] API route handler tests
+- [ ] E2E tests (login, workout, posting)
+- [ ] Buat SETUP_INSTRUCTIONS.md
+- [ ] Update README.md
+- [ ] Setup Netlify/Vercel deployment
+- [ ] Environment variables setup
+- [ ] Production build test
+- [ ] Deploy & verify
 
-4. **PWA Improvements**
-   - [ ] Enhanced offline functionality
-   - [ ] Better service worker caching strategies
-   - [ ] Background sync capabilities
-   - [ ] Push notifications for reminders
+## ✅ COMPLETED IN THIS SESSION:
+- [x] Buat .env.example dengan semua variabel yang dibutuhkan
+- [x] Install dependencies dengan bun
+- [x] Start dev server berhasil
+- [x] Update database schema: tambah workout_steps & strava_activities tables
+- [x] Tambah RLS policies untuk tabel baru
+- [x] Buat wger service dengan ETag caching
+- [x] Update Strava OAuth scopes untuk 2024 compliance (read, activity:read_all)
+- [x] Update rate limits ke 200/15min dan 2000/day
+- [x] Rebrand aplikasi ke FitHome+
+- [x] Update manifest.ts untuk PWA
+- [x] Customize Button component dengan fitness-themed colors (emerald/teal/orange)
+- [x] Update Card component dengan glassmorphism
+- [x] Update page.tsx dengan branding dan warna baru
+- [x] Update workouts API untuk menggunakan wger service baru
 
-5. **UI/UX Enhancements**
-   - [ ] Customize shadcn/ui components for unique design
-   - [ ] Improve responsive layouts
-   - [ ] Add loading states and error handling
-   - [ ] Enhance accessibility features
+## 🔧 IMMEDIATE NEXT STEPS:
+1. ✅ Buat .env.example
+2. ✅ Install dependencies & start dev server
+3. ✅ Review & perbaiki database schema
+4. ✅ Implementasi wger API integration
+5. ✅ Update Strava OAuth compliance
+6. Implementasi Strava webhook verification & handlers
+7. Buat komponen workout builder yang lebih advanced
+8. Setup Supabase Storage policies untuk avatars & post_images
+9. Implementasi social feed dengan real data
+10. Generate PWA icons (192x192, 512x512)
 
-## 🚀 **NEXT IMMEDIATE STEPS:**
-
-### Phase 1: Core Functionality Polish ✅ **COMPLETED**
-- [x] **Version current state** - Create baseline version
-- [x] **Enhance exercise library** - Improve wger.de integration
-- [x] **Complete social posting** - Finish media upload system
-- [x] **Improve step tracking** - Add better analytics
-
-### Phase 2: Strava Integration ✅ **COMPLETED**
-- [x] **Real Strava OAuth** - Implement proper authentication
-- [x] **Activity sync** - Real-time webhook integration
-- [x] **Data privacy** - Ensure 2024 ToS compliance
-- [x] **Rate limiting** - Proper API usage patterns
-
-### Phase 3: PWA Enhancement ✅ **COMPLETED**
-- [x] **Service worker** - Enhanced offline capabilities
-- [x] **Background sync** - Offline data synchronization
-- [x] **Push notifications** - Workout reminders
-- [x] **Installation prompts** - Better PWA experience
-
----
-
-## 📊 **CURRENT STATUS**:
-🟢 **PRODUCTION-READY PWA WITH COMPREHENSIVE FEATURES**
-
-✅ **MAJOR ACHIEVEMENTS IN THIS SESSION:**
-- **Modern UI/UX**: Enhanced with gradients, backdrop blur, and fitness-themed design
-- **Comprehensive PWA**: Full service worker with offline capabilities and caching strategies
-- **Strava 2024 Compliance**: Updated OAuth scopes and rate limiting for latest requirements
-- **Social Features**: Complete post creation system with media upload functionality
-- **Enhanced Components**: Custom shadcn/ui styling with unique fitness branding
-
-🎯 **READY FOR DEPLOYMENT** with optional enhancements remaining.
-
----
-
-## 🔗 **KEY COMPLIANCE REMINDERS:**
-
-### Strava API 2024 Requirements:
-- ✅ Display data only to activity owner
-- ✅ No AI/ML training on user data
-- ✅ Respect rate limits and webhooks
-- ✅ Use minimal required OAuth scopes
-
-### Technical Stack Compliance:
-- ✅ Next.js App Router with Route Handlers
-- ✅ Supabase for Auth + DB + Storage
-- ✅ shadcn/ui for consistent UI components
-- ✅ PWA manifest and service worker ready
-
-**TARGET**: Production-ready PWA with full Strava integration and enhanced features
+## 📝 NOTES:
+- Fokus pada free tier (Supabase, Strava dev, wger)
+- Hindari emojis di UI
+- Gunakan warna selain purple/indigo/blue kecuali diminta
+- Responsive design wajib
+- Server-side token handling
+- Rate limiting awareness
